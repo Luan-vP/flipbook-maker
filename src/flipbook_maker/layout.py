@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from PIL import Image, ImageColor, ImageDraw
 
@@ -13,6 +14,8 @@ PAPER_SIZES_MM: dict[str, tuple[float, float]] = {
 }
 
 A4_MM = PAPER_SIZES_MM["a4"]
+
+FitMode = Literal["contain", "cover", "stretch"]
 
 
 def _mm_to_px(mm: float, dpi: int) -> int:
@@ -29,6 +32,7 @@ class LayoutConfig:
     page_size_mm: tuple[float, float] = A4_MM
     cut_marks: bool = False
     cell_outline: bool = False
+    fit: FitMode = "contain"
 
     def page_px(self) -> tuple[int, int]:
         return _mm_to_px(self.page_size_mm[0], self.dpi), _mm_to_px(self.page_size_mm[1], self.dpi)
@@ -55,18 +59,40 @@ def _load_background(spec: str | Path, size: tuple[int, int]) -> Image.Image:
     return Image.new("RGB", size, rgb)
 
 
-def _place_in_cell(cell: Image.Image, frame: Image.Image) -> None:
+def _place_in_cell(cell: Image.Image, frame: Image.Image, fit: FitMode = "contain") -> None:
     cw, ch = cell.size
     fw, fh = frame.size
-    scale = min(cw / fw, ch / fh)
-    new = (max(1, int(fw * scale)), max(1, int(fh * scale)))
-    resized = frame.resize(new, Image.LANCZOS)
-    x = cw - new[0]
-    y = (ch - new[1]) // 2
-    if resized.mode == "RGBA":
-        cell.paste(resized, (x, y), resized)
-    else:
-        cell.paste(resized, (x, y))
+
+    if fit == "contain":
+        scale = min(cw / fw, ch / fh)
+        new = (max(1, int(fw * scale)), max(1, int(fh * scale)))
+        resized = frame.resize(new, Image.LANCZOS)
+        x = cw - new[0]
+        y = (ch - new[1]) // 2
+        if resized.mode == "RGBA":
+            cell.paste(resized, (x, y), resized)
+        else:
+            cell.paste(resized, (x, y))
+
+    elif fit == "cover":
+        scale = max(cw / fw, ch / fh)
+        crop_w = cw / scale
+        crop_h = ch / scale
+        left = round(fw - crop_w)
+        top = round((fh - crop_h) / 2)
+        cropped = frame.crop((left, top, fw, fh - top))
+        resized = cropped.resize((cw, ch), Image.LANCZOS)
+        if resized.mode == "RGBA":
+            cell.paste(resized, (0, 0), resized)
+        else:
+            cell.paste(resized, (0, 0))
+
+    elif fit == "stretch":
+        resized = frame.resize((cw, ch), Image.LANCZOS)
+        if resized.mode == "RGBA":
+            cell.paste(resized, (0, 0), resized)
+        else:
+            cell.paste(resized, (0, 0))
 
 
 def render_sheets(frames: list[Path], config: LayoutConfig) -> list[Image.Image]:
@@ -84,7 +110,7 @@ def render_sheets(frames: list[Path], config: LayoutConfig) -> list[Image.Image]
             cell = Image.new("RGBA", (cell_w, cell_h), (0, 0, 0, 0))
             with Image.open(frame_path) as raw:
                 frame = raw.convert("RGBA")
-                _place_in_cell(cell, frame)
+                _place_in_cell(cell, frame, config.fit)
             x = margin + col * cell_w
             y = margin + row * cell_h
             page.paste(cell, (x, y), cell)

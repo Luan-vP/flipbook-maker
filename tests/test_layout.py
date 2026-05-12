@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from flipbook_maker.layout import LayoutConfig, render_sheets, save_pdf
@@ -90,3 +91,91 @@ def test_no_decorations_regression(tmp_path: Path) -> None:
     pages_old = render_sheets([frame], config_old)
     pages_new = render_sheets([frame], config_new)
     assert pages_old[0].tobytes() == pages_new[0].tobytes()
+
+
+# Landscape config: cell is wider than tall — exercises pillarbox/cover/stretch
+_WIDE_CONFIG = dict(cols=1, rows=1, dpi=72, margin_mm=0.0, page_size_mm=(200.0, 100.0))
+_FRAME_COLOR = (200, 50, 50)
+_BG_COLOR = (255, 255, 255)
+
+
+def _wide_frame(path: Path) -> Path:
+    """400x400 square frame saved to path."""
+    Image.new("RGB", (400, 400), _FRAME_COLOR).save(path)
+    return path
+
+
+def test_fit_contain_pillarbox(tmp_path: Path) -> None:
+    """Square frame into wide cell: pillarbox (background) on the left, frame on the right."""
+    frame = _wide_frame(tmp_path / "frame.png")
+    config = LayoutConfig(**_WIDE_CONFIG, fit="contain")
+    page = render_sheets([frame], config)[0]
+
+    cw, ch = config.cell_px()
+    margin = config.margin_px()
+
+    left_pixel = page.getpixel((margin, margin + ch // 2))[:3]
+    assert left_pixel == _BG_COLOR, f"expected pillarbox (bg) on left, got {left_pixel}"
+
+    right_pixel = page.getpixel((margin + cw - 1, margin + ch // 2))[:3]
+    assert right_pixel == _FRAME_COLOR, f"expected frame on right, got {right_pixel}"
+
+
+def test_fit_cover_no_border(tmp_path: Path) -> None:
+    """Square frame into wide cell: frame fills entire cell, no background border on any side."""
+    frame = _wide_frame(tmp_path / "frame.png")
+    config = LayoutConfig(**_WIDE_CONFIG, fit="cover")
+    page = render_sheets([frame], config)[0]
+
+    cw, ch = config.cell_px()
+    margin = config.margin_px()
+
+    left_pixel = page.getpixel((margin, margin + ch // 2))[:3]
+    assert left_pixel != _BG_COLOR, f"expected no pillarbox on left, got background: {left_pixel}"
+
+    right_pixel = page.getpixel((margin + cw - 1, margin + ch // 2))[:3]
+    assert right_pixel == _FRAME_COLOR, f"expected frame on right, got {right_pixel}"
+
+    top_pixel = page.getpixel((margin + cw // 2, margin))[:3]
+    assert top_pixel != _BG_COLOR, f"expected no letterbox on top, got background: {top_pixel}"
+
+    bottom_pixel = page.getpixel((margin + cw // 2, margin + ch - 1))[:3]
+    assert (
+        bottom_pixel != _BG_COLOR
+    ), f"expected no letterbox on bottom, got background: {bottom_pixel}"
+
+
+def test_fit_stretch_fills_cell(tmp_path: Path) -> None:
+    """Stretch mode: frame fully covers every corner of the cell."""
+    frame = _wide_frame(tmp_path / "frame.png")
+    config = LayoutConfig(**_WIDE_CONFIG, fit="stretch")
+    page = render_sheets([frame], config)[0]
+
+    cw, ch = config.cell_px()
+    margin = config.margin_px()
+
+    corners = [
+        (margin, margin),
+        (margin + cw - 1, margin),
+        (margin, margin + ch - 1),
+        (margin + cw - 1, margin + ch - 1),
+    ]
+    for x, y in corners:
+        pixel = page.getpixel((x, y))[:3]
+        assert pixel == _FRAME_COLOR, f"expected frame at corner ({x},{y}), got {pixel}"
+
+
+@pytest.mark.parametrize("fit", ["contain", "cover", "stretch"])
+def test_right_wall_invariant(tmp_path: Path, fit: str) -> None:
+    """Right edge of the cell always shows the frame, not the background, for all fit modes."""
+    frame = _wide_frame(tmp_path / "frame.png")
+    config = LayoutConfig(**_WIDE_CONFIG, fit=fit)
+    page = render_sheets([frame], config)[0]
+
+    cw, ch = config.cell_px()
+    margin = config.margin_px()
+    x_right = margin + cw - 1
+    y_mid = margin + ch // 2
+
+    pixel = page.getpixel((x_right, y_mid))[:3]
+    assert pixel == _FRAME_COLOR, f"right-wall invariant failed for fit={fit!r}: got {pixel}"
