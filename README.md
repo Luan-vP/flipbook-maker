@@ -23,7 +23,6 @@ flipbook-make frames/ --paper a3 --landscape
 
 Frames are taken in alphanumeric order (`frame_001.png`, `frame_002.png`, …).
 
-<<<<<<< HEAD
 ### Paper size and orientation
 
 | Flag | Options | Default |
@@ -41,7 +40,7 @@ Paper sizes in mm:
 | `legal` | 215.9 × 355.6 |
 
 The default grid is **2 × 8** regardless of paper size. Override with `--cols` / `--rows` when using larger paper.
-=======
+
 ## Preview
 
 Iterating on `--cols`, `--rows`, or `--background` is faster with a single-sheet preview.
@@ -63,7 +62,37 @@ flipbook-make frames/ --preview 1 -o -
 ```
 
 When no `-o` is given, the preview is written to `preview.png` in the current directory.
->>>>>>> f43f35f (feat: add --preview N flag for single-sheet PNG preview)
+
+## From video
+
+Skip the manual frame-extraction step by pointing directly at a video file:
+
+```bash
+flipbook-make --from-video clip.mp4 -o flipbook.pdf
+flipbook-make --from-video clip.mp4 --fps 24 -o flipbook.pdf
+```
+
+`--fps N` (default **12**) controls how many frames per second are extracted.
+All other flags (`--cols`, `--rows`, `--background`, `--paper`, …) work as usual.
+`FRAMES_DIR` must be omitted when `--from-video` is used.
+
+### ffmpeg prerequisite
+
+Frame extraction shells out to [ffmpeg](https://ffmpeg.org/). Install it and
+make sure it is on your `PATH` before using `--from-video`:
+
+```bash
+# macOS
+brew install ffmpeg
+
+# Debian / Ubuntu
+sudo apt install ffmpeg
+
+# Windows (winget)
+winget install Gyan.FFmpeg
+```
+
+The tool checks for ffmpeg at run time and prints a clear error if it is missing.
 
 ## Develop
 
