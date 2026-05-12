@@ -5,7 +5,14 @@ from pathlib import Path
 
 from PIL import Image, ImageColor
 
-A4_MM = (210.0, 297.0)
+PAPER_SIZES_MM: dict[str, tuple[float, float]] = {
+    "a4": (210.0, 297.0),
+    "a3": (297.0, 420.0),
+    "letter": (215.9, 279.4),
+    "legal": (215.9, 355.6),
+}
+
+A4_MM = PAPER_SIZES_MM["a4"]
 
 
 def _mm_to_px(mm: float, dpi: int) -> int:
@@ -41,7 +48,8 @@ def _load_background(spec: str | Path, size: tuple[int, int]) -> Image.Image:
     try:
         rgb = ImageColor.getrgb(str(spec))
     except ValueError as e:
-        raise ValueError(f"background must be a color name/hex or an image path, got: {spec!r}") from e
+        msg = f"background must be a color name/hex or an image path, got: {spec!r}"
+        raise ValueError(msg) from e
     return Image.new("RGB", size, rgb)
 
 
