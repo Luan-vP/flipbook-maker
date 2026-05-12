@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from PIL import Image, ImageColor, ImageDraw
+from PIL import Image, ImageColor, ImageDraw, ImageFont
 
 PAPER_SIZES_MM: dict[str, tuple[float, float]] = {
     "a4": (210.0, 297.0),
@@ -33,6 +33,9 @@ class LayoutConfig:
     cut_marks: bool = False
     cell_outline: bool = False
     fit: FitMode = "contain"
+    frame_numbers: bool = False
+    frame_number_color: str = "black"
+    frame_number_offset_mm: float = 2.0
 
     def page_px(self) -> tuple[int, int]:
         return _mm_to_px(self.page_size_mm[0], self.dpi), _mm_to_px(self.page_size_mm[1], self.dpi)
@@ -95,6 +98,30 @@ def _place_in_cell(cell: Image.Image, frame: Image.Image, fit: FitMode = "contai
             cell.paste(resized, (0, 0))
 
 
+def _draw_frame_number(
+    page: Image.Image,
+    frame_idx: int,
+    cell_x: int,
+    cell_y: int,
+    cell_h: int,
+    config: LayoutConfig,
+) -> None:
+    font = ImageFont.load_default()
+    label = str(frame_idx)
+    offset_px = _mm_to_px(config.frame_number_offset_mm, config.dpi)
+    draw = ImageDraw.Draw(page)
+    bbox = draw.textbbox((0, 0), label, font=font)
+    text_h = bbox[3] - bbox[1]
+    text_x = cell_x + offset_px
+    text_y = cell_y + cell_h // 2 - text_h // 2
+    draw.text(
+        (text_x, text_y),
+        label,
+        font=font,
+        fill=ImageColor.getrgb(config.frame_number_color),
+    )
+
+
 def render_sheets(frames: list[Path], config: LayoutConfig) -> list[Image.Image]:
     page_size = config.page_px()
     cell_w, cell_h = config.cell_px()
@@ -114,6 +141,8 @@ def render_sheets(frames: list[Path], config: LayoutConfig) -> list[Image.Image]
             x = margin + col * cell_w
             y = margin + row * cell_h
             page.paste(cell, (x, y), cell)
+            if config.frame_numbers:
+                _draw_frame_number(page, start + i + 1, x, y, cell_h, config)
 
         if config.cut_marks or config.cell_outline:
             page_w, page_h = page_size
@@ -136,10 +165,10 @@ def render_sheets(frames: list[Path], config: LayoutConfig) -> list[Image.Image]
 
                     if config.cut_marks:
                         corners = [
-                            (cx,           cy,           -1, -1),
-                            (cx + cell_w,  cy,            1, -1),
-                            (cx,           cy + cell_h,  -1,  1),
-                            (cx + cell_w,  cy + cell_h,   1,  1),
+                            (cx, cy, -1, -1),
+                            (cx + cell_w, cy, 1, -1),
+                            (cx, cy + cell_h, -1, 1),
+                            (cx + cell_w, cy + cell_h, 1, 1),
                         ]
                         for x, y, hd, vd in corners:
                             hx = max(0, min(page_w - 1, x + hd * tick_len))

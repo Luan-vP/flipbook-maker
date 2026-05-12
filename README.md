@@ -73,6 +73,25 @@ pytest
 ruff check .
 ```
 
+## Frame numbering
+
+Pass `--frame-numbers` to print a small 1-based index in the left bind strip
+of each cell. This helps reassemble the stack after cutting:
+
+```bash
+flipbook-make frames/ --frame-numbers
+flipbook-make frames/ --frame-numbers --frame-number-color white  # dark backgrounds
+flipbook-make frames/ --frame-numbers --frame-number-offset-mm 3.0
+```
+
+**Dark-background caveat**: the default colour is black. On a dark background
+the number will be unreadable. Pass `--frame-number-color white` (or any CSS
+colour / hex string) to override. The tool does not auto-invert.
+
+**Cover/stretch fit modes caveat** (see `--fit`, upcoming): when a frame fills
+the full cell width the number may be overdrawn by the frame image. Prefer
+`--frame-numbers` with the default `contain` fit mode.
+
 ## Layout
 
 The page is divided into `cols × rows` cells. Within each cell the frame is

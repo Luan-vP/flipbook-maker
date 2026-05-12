@@ -70,10 +70,17 @@ def _load_order_file(order_file: Path, frames_dir: Path) -> list[Path]:
 @click.option("--order-file", type=click.Path(exists=True, dir_okay=False, path_type=Path),
               default=None,
               help="Newline-delimited list of frame paths (absolute or relative to frames_dir).")
+@click.option("--frame-numbers", is_flag=True, default=False,
+              help="Print 1-based frame index in the bind strip of each cell.")
+@click.option("--frame-number-color", type=str, default="black", show_default=True,
+              help="Color for frame numbers (name or hex). Use 'white' on dark backgrounds.")
+@click.option("--frame-number-offset-mm", type=float, default=2.0, show_default=True,
+              help="Horizontal offset (mm) from cell's left edge for the frame number.")
 def main(ctx: click.Context, frames_dir: Path, preview: int | None, fmt: str, output: Path,
          cols: int, rows: int, dpi: int, margin_mm: float, background: str, glob_pattern: str,
          paper: str, landscape: bool, cut_marks: bool, cell_outline: bool, fit: str,
-         order_file: Path | None) -> None:
+         order_file: Path | None, frame_numbers: bool, frame_number_color: str,
+         frame_number_offset_mm: float) -> None:
     """Format flipbook FRAMES_DIR into a printable PDF or PNG pages."""
     if order_file is not None:
         if ctx.get_parameter_source("glob_pattern") == click.core.ParameterSource.COMMANDLINE:
@@ -92,6 +99,9 @@ def main(ctx: click.Context, frames_dir: Path, preview: int | None, fmt: str, ou
         page_size_mm=page_size_mm,
         cut_marks=cut_marks, cell_outline=cell_outline,
         fit=fit,
+        frame_numbers=frame_numbers,
+        frame_number_color=frame_number_color,
+        frame_number_offset_mm=frame_number_offset_mm,
     )
     pages = render_sheets(frames, config)
 
