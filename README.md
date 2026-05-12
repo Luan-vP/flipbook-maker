@@ -23,6 +23,7 @@ flipbook-make frames/ --paper a3 --landscape
 
 Frames are taken in alphanumeric order (`frame_001.png`, `frame_002.png`, …).
 
+<<<<<<< HEAD
 ### Paper size and orientation
 
 | Flag | Options | Default |
@@ -40,6 +41,29 @@ Paper sizes in mm:
 | `legal` | 215.9 × 355.6 |
 
 The default grid is **2 × 8** regardless of paper size. Override with `--cols` / `--rows` when using larger paper.
+=======
+## Preview
+
+Iterating on `--cols`, `--rows`, or `--background` is faster with a single-sheet preview.
+Pass `--preview N` (1-indexed sheet number) to render only that sheet and write it as a PNG,
+then exit without producing a PDF:
+
+```bash
+# Preview sheet 1 (most common — check layout before a full run)
+flipbook-make frames/ --preview 1
+
+# Preview a specific sheet with custom options
+flipbook-make frames/ --cols 3 --rows 6 --background "#f5f0e6" --preview 2
+
+# Write preview to a named file
+flipbook-make frames/ --preview 1 -o check.png
+
+# Write preview to stdout (pipe to an image viewer)
+flipbook-make frames/ --preview 1 -o -
+```
+
+When no `-o` is given, the preview is written to `preview.png` in the current directory.
+>>>>>>> f43f35f (feat: add --preview N flag for single-sheet PNG preview)
 
 ## Develop
 
