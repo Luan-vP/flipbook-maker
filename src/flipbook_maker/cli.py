@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import click
@@ -10,12 +11,16 @@ from flipbook_maker.layout import PAPER_SIZES_MM, LayoutConfig, render_sheets, s
 def _default_output(ctx: click.Context, param: click.Parameter, value: Path | None) -> Path:
     if value is not None:
         return value
+    if ctx.params.get("preview") is not None:
+        return Path("preview.png")
     fmt = ctx.params.get("fmt", "pdf")
     return Path("flipbook.pdf") if fmt == "pdf" else Path("pages/")
 
 
 @click.command()
 @click.argument("frames_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--preview", type=int, default=None, metavar="N", is_eager=True,
+              help="Render only sheet N (1-indexed) as a PNG and exit. PDF is not produced.")
 @click.option("--format", "fmt", type=click.Choice(["pdf", "png"]), default="pdf",
               show_default=True, is_eager=True, help="Output format.")
 @click.option("-o", "--output", type=click.Path(path_type=Path), default=None,
@@ -39,9 +44,9 @@ def _default_output(ctx: click.Context, param: click.Parameter, value: Path | No
               help="Draw a thin hairline rectangle around every cell.")
 @click.option("--fit", type=click.Choice(["contain", "cover", "stretch"]), default="contain",
               show_default=True, help="How frames are scaled into each cell.")
-def main(frames_dir: Path, fmt: str, output: Path, cols: int, rows: int, dpi: int,
-         margin_mm: float, background: str, glob_pattern: str, paper: str, landscape: bool,
-         cut_marks: bool, cell_outline: bool, fit: str) -> None:
+def main(frames_dir: Path, preview: int | None, fmt: str, output: Path, cols: int, rows: int,
+         dpi: int, margin_mm: float, background: str, glob_pattern: str, paper: str,
+         landscape: bool, cut_marks: bool, cell_outline: bool, fit: str) -> None:
     """Format flipbook FRAMES_DIR into a printable PDF or PNG pages."""
     frames = sorted(frames_dir.glob(glob_pattern))
     if not frames:
@@ -55,6 +60,20 @@ def main(frames_dir: Path, fmt: str, output: Path, cols: int, rows: int, dpi: in
         fit=fit,
     )
     pages = render_sheets(frames, config)
+
+    if preview is not None:
+        if preview < 1 or preview > len(pages):
+            raise click.ClickException(
+                f"--preview {preview} out of range: {len(pages)} sheet(s) available"
+            )
+        page = pages[preview - 1]
+        if output == Path("-"):
+            page.save(sys.stdout.buffer, format="PNG")
+        else:
+            page.save(output, format="PNG", dpi=(dpi, dpi))
+            click.echo(f"preview sheet {preview}/{len(pages)} → {output}")
+        return
+
     save_pages(pages, output, fmt=fmt, dpi=config.dpi)
     click.echo(f"wrote {len(pages)} page(s) covering {len(frames)} frame(s) → {output}")
 
