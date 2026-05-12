@@ -4,13 +4,23 @@ from pathlib import Path
 
 import click
 
-from flipbook_maker.layout import PAPER_SIZES_MM, LayoutConfig, render_sheets, save_pdf
+from flipbook_maker.layout import PAPER_SIZES_MM, LayoutConfig, render_sheets, save_pages
+
+
+def _default_output(ctx: click.Context, param: click.Parameter, value: Path | None) -> Path:
+    if value is not None:
+        return value
+    fmt = ctx.params.get("fmt", "pdf")
+    return Path("flipbook.pdf") if fmt == "pdf" else Path("pages/")
 
 
 @click.command()
 @click.argument("frames_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
-@click.option("-o", "--output", type=click.Path(path_type=Path), default=Path("flipbook.pdf"),
-              show_default=True, help="Output PDF path.")
+@click.option("--format", "fmt", type=click.Choice(["pdf", "png"]), default="pdf",
+              show_default=True, is_eager=True, help="Output format.")
+@click.option("-o", "--output", type=click.Path(path_type=Path), default=None,
+              callback=_default_output, is_eager=False,
+              help="Output path (PDF file or PNG dir/prefix). Defaults to flipbook.pdf or pages/.")
 @click.option("--cols", type=int, default=2, show_default=True, help="Columns per sheet.")
 @click.option("--rows", type=int, default=8, show_default=True, help="Rows per sheet.")
 @click.option("--dpi", type=int, default=300, show_default=True, help="Output DPI.")
@@ -29,10 +39,10 @@ from flipbook_maker.layout import PAPER_SIZES_MM, LayoutConfig, render_sheets, s
               help="Draw a thin hairline rectangle around every cell.")
 @click.option("--fit", type=click.Choice(["contain", "cover", "stretch"]), default="contain",
               show_default=True, help="How frames are scaled into each cell.")
-def main(frames_dir: Path, output: Path, cols: int, rows: int, dpi: int, margin_mm: float,
-         background: str, glob_pattern: str, paper: str, landscape: bool,
+def main(frames_dir: Path, fmt: str, output: Path, cols: int, rows: int, dpi: int,
+         margin_mm: float, background: str, glob_pattern: str, paper: str, landscape: bool,
          cut_marks: bool, cell_outline: bool, fit: str) -> None:
-    """Format flipbook FRAMES_DIR into a printable PDF."""
+    """Format flipbook FRAMES_DIR into a printable PDF or PNG pages."""
     frames = sorted(frames_dir.glob(glob_pattern))
     if not frames:
         raise click.ClickException(f"no frames matched {glob_pattern!r} in {frames_dir}")
@@ -45,7 +55,7 @@ def main(frames_dir: Path, output: Path, cols: int, rows: int, dpi: int, margin_
         fit=fit,
     )
     pages = render_sheets(frames, config)
-    save_pdf(pages, output)
+    save_pages(pages, output, fmt=fmt, dpi=config.dpi)
     click.echo(f"wrote {len(pages)} page(s) covering {len(frames)} frame(s) → {output}")
 
 
