@@ -27,9 +27,11 @@ from flipbook_maker.layout import PAPER_SIZES_MM, LayoutConfig, render_sheets, s
               help="Draw cut-mark ticks at the corners of every cell.")
 @click.option("--cell-outline", is_flag=True, default=False,
               help="Draw a thin hairline rectangle around every cell.")
+@click.option("--fit", type=click.Choice(["contain", "cover", "stretch"]), default="contain",
+              show_default=True, help="How frames are scaled into each cell.")
 def main(frames_dir: Path, output: Path, cols: int, rows: int, dpi: int, margin_mm: float,
          background: str, glob_pattern: str, paper: str, landscape: bool,
-         cut_marks: bool, cell_outline: bool) -> None:
+         cut_marks: bool, cell_outline: bool, fit: str) -> None:
     """Format flipbook FRAMES_DIR into a printable PDF."""
     frames = sorted(frames_dir.glob(glob_pattern))
     if not frames:
@@ -40,6 +42,7 @@ def main(frames_dir: Path, output: Path, cols: int, rows: int, dpi: int, margin_
         cols=cols, rows=rows, dpi=dpi, margin_mm=margin_mm, background=background,
         page_size_mm=page_size_mm,
         cut_marks=cut_marks, cell_outline=cell_outline,
+        fit=fit,
     )
     pages = render_sheets(frames, config)
     save_pdf(pages, output)
