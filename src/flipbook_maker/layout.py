@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image, ImageColor
+from PIL import Image, ImageColor, ImageDraw
 
 PAPER_SIZES_MM: dict[str, tuple[float, float]] = {
     "a4": (210.0, 297.0),
@@ -27,6 +27,8 @@ class LayoutConfig:
     margin_mm: float = 5.0
     background: str | Path = "white"
     page_size_mm: tuple[float, float] = A4_MM
+    cut_marks: bool = False
+    cell_outline: bool = False
 
     def page_px(self) -> tuple[int, int]:
         return _mm_to_px(self.page_size_mm[0], self.dpi), _mm_to_px(self.page_size_mm[1], self.dpi)
@@ -86,6 +88,39 @@ def render_sheets(frames: list[Path], config: LayoutConfig) -> list[Image.Image]
             x = margin + col * cell_w
             y = margin + row * cell_h
             page.paste(cell, (x, y), cell)
+
+        if config.cut_marks or config.cell_outline:
+            page_w, page_h = page_size
+            draw = ImageDraw.Draw(page)
+            tick_len = _mm_to_px(3.0, config.dpi)
+            mark_w = max(1, _mm_to_px(0.25, config.dpi))
+            outline_w = max(1, _mm_to_px(0.2, config.dpi))
+
+            for row in range(config.rows):
+                for col in range(config.cols):
+                    cx = margin + col * cell_w
+                    cy = margin + row * cell_h
+
+                    if config.cell_outline:
+                        draw.rectangle(
+                            [(cx, cy), (cx + cell_w, cy + cell_h)],
+                            outline=(0, 0, 0),
+                            width=outline_w,
+                        )
+
+                    if config.cut_marks:
+                        corners = [
+                            (cx,           cy,           -1, -1),
+                            (cx + cell_w,  cy,            1, -1),
+                            (cx,           cy + cell_h,  -1,  1),
+                            (cx + cell_w,  cy + cell_h,   1,  1),
+                        ]
+                        for x, y, hd, vd in corners:
+                            hx = max(0, min(page_w - 1, x + hd * tick_len))
+                            draw.line([(hx, y), (x, y)], fill=(0, 0, 0), width=mark_w)
+                            vy = max(0, min(page_h - 1, y + vd * tick_len))
+                            draw.line([(x, vy), (x, y)], fill=(0, 0, 0), width=mark_w)
+
         pages.append(page)
     return pages
 

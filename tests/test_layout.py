@@ -48,3 +48,45 @@ def test_save_pdf_writes_file(tmp_path: Path) -> None:
     out = tmp_path / "out.pdf"
     save_pdf(pages, out)
     assert out.exists() and out.stat().st_size > 0
+
+
+def test_cut_marks_pixels(tmp_path: Path) -> None:
+    frame = tmp_path / "f.png"
+    _make_frame(frame, (255, 255, 255))
+    config = LayoutConfig(cols=1, rows=1, dpi=72, cut_marks=True)
+    pages = render_sheets([frame], config)
+    page = pages[0]
+
+    margin = config.margin_px()
+    # Top-left corner of the single cell; ticks extend left and up
+    cx, cy = margin, margin
+    # One pixel inward from the corner along the horizontal tick
+    assert page.getpixel((cx - 1, cy))[:3] == (0, 0, 0)
+    # One pixel inward along the vertical tick
+    assert page.getpixel((cx, cy - 1))[:3] == (0, 0, 0)
+
+
+def test_cell_outline_pixels(tmp_path: Path) -> None:
+    frame = tmp_path / "f.png"
+    _make_frame(frame, (255, 255, 255))
+    config = LayoutConfig(cols=1, rows=1, dpi=72, cell_outline=True)
+    pages = render_sheets([frame], config)
+    page = pages[0]
+
+    margin = config.margin_px()
+    cell_w, cell_h = config.cell_px()
+    cx, cy = margin, margin
+    # Mid-point of top edge
+    assert page.getpixel((cx + cell_w // 2, cy))[:3] == (0, 0, 0)
+    # Mid-point of left edge
+    assert page.getpixel((cx, cy + cell_h // 2))[:3] == (0, 0, 0)
+
+
+def test_no_decorations_regression(tmp_path: Path) -> None:
+    frame = tmp_path / "f.png"
+    _make_frame(frame, (200, 100, 50))
+    config_old = LayoutConfig(cols=1, rows=1, dpi=72)
+    config_new = LayoutConfig(cols=1, rows=1, dpi=72, cut_marks=False, cell_outline=False)
+    pages_old = render_sheets([frame], config_old)
+    pages_new = render_sheets([frame], config_new)
+    assert pages_old[0].tobytes() == pages_new[0].tobytes()
