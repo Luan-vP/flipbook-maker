@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from flipbook_maker.layout import LayoutConfig, render_sheets, save_pdf
+from flipbook_maker.layout import LayoutConfig, render_sheets, save_pages, save_pdf
 
 
 def _make_frame(path: Path, color: tuple[int, int, int]) -> None:
@@ -179,3 +179,68 @@ def test_right_wall_invariant(tmp_path: Path, fit: str) -> None:
 
     pixel = page.getpixel((x_right, y_mid))[:3]
     assert pixel == _FRAME_COLOR, f"right-wall invariant failed for fit={fit!r}: got {pixel}"
+
+
+def test_save_pages_pdf(tmp_path: Path) -> None:
+    frame = tmp_path / "f.png"
+    _make_frame(frame, (0, 128, 0))
+    pages = render_sheets([frame], LayoutConfig(cols=1, rows=1))
+    out = tmp_path / "out.pdf"
+    save_pages(pages, out, fmt="pdf")
+    assert out.exists() and out.stat().st_size > 0
+
+
+def test_save_pages_png_directory(tmp_path: Path) -> None:
+    frames = []
+    config = LayoutConfig(cols=2, rows=4)
+    per_page = config.cols * config.rows
+    for i in range(per_page * 2):
+        p = tmp_path / f"frame_{i:03d}.png"
+        _make_frame(p, (i * 5 % 255, 0, 0))
+        frames.append(p)
+
+    pages = render_sheets(frames, config)
+    out_dir = tmp_path / "pngs"
+    save_pages(pages, out_dir, fmt="png", dpi=300)
+
+    expected_files = [out_dir / f"page_{i:03d}.png" for i in range(1, len(pages) + 1)]
+    for f in expected_files:
+        assert f.exists(), f"{f} not found"
+        img = Image.open(f)
+        assert img.size == config.page_px()
+
+
+def test_save_pages_png_prefix(tmp_path: Path) -> None:
+    frame = tmp_path / "f.png"
+    _make_frame(frame, (200, 100, 50))
+    config = LayoutConfig(cols=1, rows=1)
+    pages = render_sheets([frame], config)
+
+    out = tmp_path / "output" / "mybook.png"
+    save_pages(pages, out, fmt="png", dpi=300)
+
+    result = tmp_path / "output" / "mybook_001.png"
+    assert result.exists()
+    img = Image.open(result)
+    assert img.size == config.page_px()
+
+
+def test_save_pages_png_dpi_metadata(tmp_path: Path) -> None:
+    frame = tmp_path / "f.png"
+    _make_frame(frame, (0, 0, 255))
+    pages = render_sheets([frame], LayoutConfig(cols=1, rows=1))
+    out_dir = tmp_path / "pngs"
+    save_pages(pages, out_dir, fmt="png", dpi=300)
+
+    img = Image.open(out_dir / "page_001.png")
+    dpi = img.info.get("dpi")
+    assert dpi is not None and round(dpi[0]) == 300 and round(dpi[1]) == 300
+
+
+def test_save_pages_unknown_format(tmp_path: Path) -> None:
+    frame = tmp_path / "f.png"
+    _make_frame(frame, (0, 0, 0))
+    pages = render_sheets([frame], LayoutConfig(cols=1, rows=1))
+    import pytest
+    with pytest.raises(ValueError, match="unknown format"):
+        save_pages(pages, tmp_path / "out", fmt="jpeg")
