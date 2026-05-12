@@ -244,3 +244,44 @@ def test_save_pages_unknown_format(tmp_path: Path) -> None:
     import pytest
     with pytest.raises(ValueError, match="unknown format"):
         save_pages(pages, tmp_path / "out", fmt="jpeg")
+
+
+def _make_portrait_frame(path: Path, color: tuple[int, int, int]) -> None:
+    """Tall frame (100x400) so contain-fit leaves a real left bind strip in A4-portrait cells."""
+    Image.new("RGB", (100, 400), color).save(path)
+
+
+def test_frame_numbers_renders_in_bind_strip(tmp_path: Path) -> None:
+    frame = tmp_path / "f.png"
+    _make_portrait_frame(frame, (200, 200, 200))
+    config = LayoutConfig(cols=1, rows=1, dpi=72, background="white", frame_numbers=True)
+    pages = render_sheets([frame], config)
+    page = pages[0]
+    margin = config.margin_px()
+    _, cell_h = config.cell_px()
+    band_half = max(cell_h // 4, 20)
+    mid_y = margin + cell_h // 2
+    found_non_white = any(
+        page.getpixel((x, y)) != (255, 255, 255)
+        for x in range(margin, margin + 30)
+        for y in range(mid_y - band_half, mid_y + band_half)
+    )
+    assert found_non_white, "expected frame number pixels in the bind strip but found none"
+
+
+def test_frame_numbers_off_leaves_bind_strip_white(tmp_path: Path) -> None:
+    frame = tmp_path / "f.png"
+    _make_portrait_frame(frame, (200, 200, 200))
+    config = LayoutConfig(cols=1, rows=1, dpi=72, background="white", frame_numbers=False)
+    pages = render_sheets([frame], config)
+    page = pages[0]
+    margin = config.margin_px()
+    _, cell_h = config.cell_px()
+    mid_y = margin + cell_h // 2
+    band_half = max(cell_h // 4, 20)
+    found_non_white = any(
+        page.getpixel((x, y)) != (255, 255, 255)
+        for x in range(margin, margin + 30)
+        for y in range(mid_y - band_half, mid_y + band_half)
+    )
+    assert not found_non_white, "bind strip should be untouched when frame_numbers=False"
