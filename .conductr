@@ -1,0 +1,19 @@
+# Project config for flipbook-maker.
+# `conductr begin` reads `tag` and `repo`; other fields are reserved.
+
+project_tag = "flipbook"
+repo        = "Luan-vP/flipbook-maker"
+
+[band]
+agents         = ["claude"]
+human_assignee = "Luan-vP"
+
+[cadence]
+# Per-task cron expressions. Host crontab is the source of truth for now.
+orchestrate = "0 */4 * * *"
+
+[local]
+provider = "ollama"
+
+[tempo]
+entries = []
