@@ -76,11 +76,16 @@ def _load_order_file(order_file: Path, frames_dir: Path) -> list[Path]:
               help="Color for frame numbers (name or hex). Use 'white' on dark backgrounds.")
 @click.option("--frame-number-offset-mm", type=float, default=2.0, show_default=True,
               help="Horizontal offset (mm) from cell's left edge for the frame number.")
+@click.option("--bind-mm", "bind_strip_mm", type=float, default=0.0, show_default=True,
+              help="Reserve a fixed bind strip of this width (mm) on the left of each cell.")
+@click.option("--bind-color", "bind_strip_color", type=str, default=None,
+              help="Fill the bind strip with this color (name or hex). Omit for page background.")
 def main(ctx: click.Context, frames_dir: Path, preview: int | None, fmt: str, output: Path,
          cols: int, rows: int, dpi: int, margin_mm: float, background: str, glob_pattern: str,
          paper: str, landscape: bool, cut_marks: bool, cell_outline: bool, fit: str,
          order_file: Path | None, frame_numbers: bool, frame_number_color: str,
-         frame_number_offset_mm: float) -> None:
+         frame_number_offset_mm: float, bind_strip_mm: float,
+         bind_strip_color: str | None) -> None:
     """Format flipbook FRAMES_DIR into a printable PDF or PNG pages."""
     if order_file is not None:
         if ctx.get_parameter_source("glob_pattern") == click.core.ParameterSource.COMMANDLINE:
@@ -102,6 +107,8 @@ def main(ctx: click.Context, frames_dir: Path, preview: int | None, fmt: str, ou
         frame_numbers=frame_numbers,
         frame_number_color=frame_number_color,
         frame_number_offset_mm=frame_number_offset_mm,
+        bind_strip_mm=bind_strip_mm,
+        bind_strip_color=bind_strip_color,
     )
     pages = render_sheets(frames, config)
 
