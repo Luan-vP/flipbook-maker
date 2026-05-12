@@ -4,7 +4,7 @@ from pathlib import Path
 
 import click
 
-from flipbook_maker.layout import LayoutConfig, render_sheets, save_pdf
+from flipbook_maker.layout import PAPER_SIZES_MM, LayoutConfig, render_sheets, save_pdf
 
 
 @click.command()
@@ -19,14 +19,21 @@ from flipbook_maker.layout import LayoutConfig, render_sheets, save_pdf
               help="Background color (name/hex) OR path to a texture image.")
 @click.option("--glob", "glob_pattern", type=str, default="*.png", show_default=True,
               help="Glob pattern for frame files within frames_dir.")
+@click.option("--paper", type=click.Choice(list(PAPER_SIZES_MM.keys())), default="a4",
+              show_default=True, help="Paper size preset.")
+@click.option("--landscape/--portrait", default=False, show_default=True,
+              help="Page orientation.")
 def main(frames_dir: Path, output: Path, cols: int, rows: int, dpi: int, margin_mm: float,
-         background: str, glob_pattern: str) -> None:
+         background: str, glob_pattern: str, paper: str, landscape: bool) -> None:
     """Format flipbook FRAMES_DIR into a printable PDF."""
     frames = sorted(frames_dir.glob(glob_pattern))
     if not frames:
         raise click.ClickException(f"no frames matched {glob_pattern!r} in {frames_dir}")
+    w, h = PAPER_SIZES_MM[paper]
+    page_size_mm = (h, w) if landscape else (w, h)
     config = LayoutConfig(
         cols=cols, rows=rows, dpi=dpi, margin_mm=margin_mm, background=background,
+        page_size_mm=page_size_mm,
     )
     pages = render_sheets(frames, config)
     save_pdf(pages, output)

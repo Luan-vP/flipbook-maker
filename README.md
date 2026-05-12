@@ -18,9 +18,28 @@ pip install -e .[dev]
 flipbook-make frames/ -o flipbook.pdf
 flipbook-make frames/ --cols 2 --rows 8 --background "#f5f0e6"
 flipbook-make frames/ --background path/to/paper-texture.png
+flipbook-make frames/ --paper a3 --landscape
 ```
 
 Frames are taken in alphanumeric order (`frame_001.png`, `frame_002.png`, …).
+
+### Paper size and orientation
+
+| Flag | Options | Default |
+|------|---------|---------|
+| `--paper` | `a4`, `a3`, `letter`, `legal` | `a4` |
+| `--landscape` / `--portrait` | — | portrait |
+
+Paper sizes in mm:
+
+| Preset | Width × Height (portrait) |
+|--------|--------------------------|
+| `a4` | 210 × 297 |
+| `a3` | 297 × 420 |
+| `letter` | 215.9 × 279.4 |
+| `legal` | 215.9 × 355.6 |
+
+The default grid is **2 × 8** regardless of paper size. Override with `--cols` / `--rows` when using larger paper.
 
 ## Develop
 
@@ -32,7 +51,6 @@ ruff check .
 
 ## Layout
 
-A4 portrait (210 × 297 mm) is divided into `cols × rows` cells. Within each
-cell the frame is scaled to fit (preserving aspect ratio) and pasted against
-the right wall, vertically centred. Cut along the cell boundaries and bind
-the left edges.
+The page is divided into `cols × rows` cells. Within each cell the frame is
+scaled to fit (preserving aspect ratio) and pasted against the right wall,
+vertically centred. Cut along the cell boundaries and bind the left edges.
