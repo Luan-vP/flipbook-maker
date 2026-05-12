@@ -6,7 +6,7 @@ import pytest
 from click.testing import CliRunner
 from PIL import Image
 
-from flipbook_maker.cli import main
+from flipbook_maker.cli import _natural_key, main
 from flipbook_maker.layout import PAPER_SIZES_MM, LayoutConfig, render_sheets
 
 
@@ -113,3 +113,48 @@ def test_preview_default_output_name(tmp_path: Path) -> None:
         result = runner.invoke(main, [str(frames_dir), "--preview", "1"], catch_exceptions=False)
         assert result.exit_code == 0, result.output
         assert Path(td, "preview.png").exists()
+
+
+def test_natural_key_sorts_correctly() -> None:
+    paths = [Path(name) for name in ["frame_10.png", "frame_2.png", "frame_1.png"]]
+    result = sorted(paths, key=_natural_key)
+    assert [p.name for p in result] == ["frame_1.png", "frame_2.png", "frame_10.png"]
+
+
+def test_cli_natural_sort_smoke(tmp_path: Path) -> None:
+    for i in range(1, 13):
+        _make_frame(tmp_path / f"frame_{i}.png")
+    out = tmp_path / "out.pdf"
+    result = CliRunner().invoke(
+        main, [str(tmp_path), "-o", str(out), "--cols", "2", "--rows", "6"]
+    )
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+
+
+def test_cli_order_file_happy_path(tmp_path: Path) -> None:
+    for i in range(1, 4):
+        _make_frame(tmp_path / f"frame_{i}.png")
+    order_file = tmp_path / "order.txt"
+    order_file.write_text(
+        f"{tmp_path / 'frame_3.png'}\nframe_1.png\nframe_2.png\n# a comment\n\n"
+    )
+    out = tmp_path / "out.pdf"
+    result = CliRunner().invoke(
+        main, [str(tmp_path), "-o", str(out), "--order-file", str(order_file),
+               "--cols", "1", "--rows", "3"]
+    )
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+
+
+def test_cli_order_file_missing_frame_raises(tmp_path: Path) -> None:
+    _make_frame(tmp_path / "frame_1.png")
+    order_file = tmp_path / "order.txt"
+    order_file.write_text("frame_1.png\nmissing_frame.png\n")
+    out = tmp_path / "out.pdf"
+    result = CliRunner().invoke(
+        main, [str(tmp_path), "-o", str(out), "--order-file", str(order_file)]
+    )
+    assert result.exit_code != 0
+    assert "missing_frame.png" in result.output

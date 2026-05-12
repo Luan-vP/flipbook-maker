@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -17,7 +18,29 @@ def _default_output(ctx: click.Context, param: click.Parameter, value: Path | No
     return Path("flipbook.pdf") if fmt == "pdf" else Path("pages/")
 
 
+def _natural_key(path: Path) -> list:
+    parts = re.split(r"(\d+)", path.name)
+    return [int(p) if p.isdigit() else p.lower() for p in parts]
+
+
+def _load_order_file(order_file: Path, frames_dir: Path) -> list[Path]:
+    lines = order_file.read_text().splitlines()
+    frames = []
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        p = Path(line)
+        if not p.is_absolute():
+            p = frames_dir / p
+        if not p.exists():
+            raise click.ClickException(f"frame not found: {p} (listed in order file)")
+        frames.append(p)
+    return frames
+
+
 @click.command()
+@click.pass_context
 @click.argument("frames_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--preview", type=int, default=None, metavar="N", is_eager=True,
               help="Render only sheet N (1-indexed) as a PNG and exit. PDF is not produced.")
@@ -44,13 +67,24 @@ def _default_output(ctx: click.Context, param: click.Parameter, value: Path | No
               help="Draw a thin hairline rectangle around every cell.")
 @click.option("--fit", type=click.Choice(["contain", "cover", "stretch"]), default="contain",
               show_default=True, help="How frames are scaled into each cell.")
-def main(frames_dir: Path, preview: int | None, fmt: str, output: Path, cols: int, rows: int,
-         dpi: int, margin_mm: float, background: str, glob_pattern: str, paper: str,
-         landscape: bool, cut_marks: bool, cell_outline: bool, fit: str) -> None:
+@click.option("--order-file", type=click.Path(exists=True, dir_okay=False, path_type=Path),
+              default=None,
+              help="Newline-delimited list of frame paths (absolute or relative to frames_dir).")
+def main(ctx: click.Context, frames_dir: Path, preview: int | None, fmt: str, output: Path,
+         cols: int, rows: int, dpi: int, margin_mm: float, background: str, glob_pattern: str,
+         paper: str, landscape: bool, cut_marks: bool, cell_outline: bool, fit: str,
+         order_file: Path | None) -> None:
     """Format flipbook FRAMES_DIR into a printable PDF or PNG pages."""
-    frames = sorted(frames_dir.glob(glob_pattern))
-    if not frames:
-        raise click.ClickException(f"no frames matched {glob_pattern!r} in {frames_dir}")
+    if order_file is not None:
+        if ctx.get_parameter_source("glob_pattern") == click.core.ParameterSource.COMMANDLINE:
+            click.echo("warning: --glob is ignored when --order-file is provided", err=True)
+        frames = _load_order_file(order_file, frames_dir)
+        if not frames:
+            raise click.ClickException(f"no frames listed in {order_file}")
+    else:
+        frames = sorted(frames_dir.glob(glob_pattern), key=_natural_key)
+        if not frames:
+            raise click.ClickException(f"no frames matched {glob_pattern!r} in {frames_dir}")
     w, h = PAPER_SIZES_MM[paper]
     page_size_mm = (h, w) if landscape else (w, h)
     config = LayoutConfig(
