@@ -269,6 +269,95 @@ def test_frame_numbers_renders_in_bind_strip(tmp_path: Path) -> None:
     assert found_non_white, "expected frame number pixels in the bind strip but found none"
 
 
+_BIND_CONFIG = dict(
+    cols=1, rows=1, dpi=72, margin_mm=0.0, page_size_mm=(100.0, 200.0), background="white"
+)
+_BIND_FRAME_COLOR = (255, 0, 0)
+
+
+def _bind_frame(path: Path) -> Path:
+    """400x400 square frame; in a (100x200mm) cell with a 10mm strip, width == usable area."""
+    Image.new("RGB", (400, 400), _BIND_FRAME_COLOR).save(path)
+    return path
+
+
+def test_bind_strip_exact_width(tmp_path: Path) -> None:
+    """1:1 frame with bind_strip_mm=10 is rendered narrower than cell width by exactly 10 mm."""
+    frame = _bind_frame(tmp_path / "frame.png")
+    config = LayoutConfig(**_BIND_CONFIG, bind_strip_mm=10.0, fit="contain")
+    page = render_sheets([frame], config)[0]
+
+    cell_w, cell_h = config.cell_px()
+    bind_px = config.bind_strip_px()
+    mid_y = cell_h // 2
+
+    # Strip region is background (white)
+    assert page.getpixel((bind_px - 1, mid_y))[:3] != _BIND_FRAME_COLOR, \
+        "expected strip (not frame) at left of cell"
+
+    # Frame starts exactly at bind_strip_px from cell left
+    assert page.getpixel((bind_px, mid_y))[:3] == _BIND_FRAME_COLOR, \
+        f"expected frame to start at x={bind_px}"
+
+    # Right-wall invariant
+    assert page.getpixel((cell_w - 1, mid_y))[:3] == _BIND_FRAME_COLOR, \
+        "right-wall invariant failed with bind strip"
+
+
+@pytest.mark.parametrize("fit", ["contain", "cover", "stretch"])
+def test_right_wall_invariant_with_bind_strip(tmp_path: Path, fit: str) -> None:
+    """Right-wall invariant holds for all fit modes when bind_strip_mm is set."""
+    frame = _bind_frame(tmp_path / "frame.png")
+    config = LayoutConfig(**_BIND_CONFIG, bind_strip_mm=10.0, fit=fit)
+    page = render_sheets([frame], config)[0]
+
+    cell_w, cell_h = config.cell_px()
+    pixel = page.getpixel((cell_w - 1, cell_h // 2))[:3]
+    assert pixel == _BIND_FRAME_COLOR, f"right-wall invariant failed for fit={fit!r}: got {pixel}"
+
+
+def test_bind_strip_zero_unchanged(tmp_path: Path) -> None:
+    """bind_strip_mm=0 (default) produces identical output to not specifying it."""
+    frame = _bind_frame(tmp_path / "frame.png")
+    config_default = LayoutConfig(**_WIDE_CONFIG, fit="contain")
+    config_zero = LayoutConfig(**_WIDE_CONFIG, fit="contain", bind_strip_mm=0.0)
+    pages_default = render_sheets([frame], config_default)
+    pages_zero = render_sheets([frame], config_zero)
+    assert pages_default[0].tobytes() == pages_zero[0].tobytes()
+
+
+def test_bind_strip_color_fills_strip(tmp_path: Path) -> None:
+    """When bind_strip_color is set, the strip region is painted with that color."""
+    frame = _bind_frame(tmp_path / "frame.png")
+    strip_color_hex = "#ffff00"
+    strip_color_rgb = (255, 255, 0)
+    config = LayoutConfig(
+        **_BIND_CONFIG, bind_strip_mm=10.0, bind_strip_color=strip_color_hex, fit="contain"
+    )
+    page = render_sheets([frame], config)[0]
+
+    bind_px = config.bind_strip_px()
+    cell_h = config.cell_px()[1]
+    mid_y = cell_h // 2
+
+    actual = page.getpixel((bind_px // 2, mid_y))[:3]
+    assert actual == strip_color_rgb, f"expected strip color {strip_color_rgb}, got {actual}"
+
+
+def test_bind_strip_no_color_shows_background(tmp_path: Path) -> None:
+    """When bind_strip_color is None, the strip shows the page background."""
+    frame = _bind_frame(tmp_path / "frame.png")
+    config = LayoutConfig(**_BIND_CONFIG, bind_strip_mm=10.0, bind_strip_color=None, fit="contain")
+    page = render_sheets([frame], config)[0]
+
+    bind_px = config.bind_strip_px()
+    cell_h = config.cell_px()[1]
+    mid_y = cell_h // 2
+
+    assert page.getpixel((bind_px // 2, mid_y))[:3] == (255, 255, 255), \
+        "expected white background in strip when bind_strip_color is None"
+
+
 def test_frame_numbers_off_leaves_bind_strip_white(tmp_path: Path) -> None:
     frame = tmp_path / "f.png"
     _make_portrait_frame(frame, (200, 200, 200))
