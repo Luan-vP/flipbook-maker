@@ -48,7 +48,8 @@ def _load_background(spec: str | Path, size: tuple[int, int]) -> Image.Image:
     try:
         rgb = ImageColor.getrgb(str(spec))
     except ValueError as e:
-        raise ValueError(f"background must be a color name/hex or an image path, got: {spec!r}") from e
+        msg = f"background must be a color name/hex or an image path, got: {spec!r}"
+        raise ValueError(msg) from e
     return Image.new("RGB", size, rgb)
 
 
