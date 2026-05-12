@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
@@ -158,3 +161,36 @@ def test_cli_order_file_missing_frame_raises(tmp_path: Path) -> None:
     )
     assert result.exit_code != 0
     assert "missing_frame.png" in result.output
+
+
+def test_from_video_no_ffmpeg(tmp_path: Path) -> None:
+    """--from-video raises a clear error when ffmpeg is not on PATH."""
+    video = tmp_path / "test.mp4"
+    video.touch()
+
+    with patch("flipbook_maker.cli.shutil.which", return_value=None):
+        result = CliRunner().invoke(
+            main,
+            ["--from-video", str(video), "-o", str(tmp_path / "out.pdf")],
+        )
+    assert result.exit_code != 0
+    assert "ffmpeg" in result.output
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg not installed")
+def test_from_video(tmp_path: Path) -> None:
+    """--from-video extracts frames via ffmpeg and produces a PDF."""
+    video = tmp_path / "test.mp4"
+    subprocess.run(
+        ["ffmpeg", "-f", "lavfi", "-i", "color=c=blue:size=320x240:rate=12",
+         "-t", "2", str(video)],
+        check=True, capture_output=True,
+    )
+    out = tmp_path / "out.pdf"
+    result = CliRunner().invoke(
+        main,
+        ["--from-video", str(video), "--fps", "12", "-o", str(out),
+         "--cols", "2", "--rows", "8"],
+    )
+    assert result.exit_code == 0, result.output
+    assert out.exists() and out.stat().st_size > 0

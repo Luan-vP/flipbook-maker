@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import contextlib
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import click
@@ -41,7 +45,13 @@ def _load_order_file(order_file: Path, frames_dir: Path) -> list[Path]:
 
 @click.command()
 @click.pass_context
-@click.argument("frames_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.argument("frames_dir", required=False,
+                type=click.Path(exists=True, file_okay=False, path_type=Path), default=None)
+@click.option("--from-video", "video_path",
+              type=click.Path(exists=True, dir_okay=False, path_type=Path), default=None,
+              help="Extract frames from this video via ffmpeg instead of reading FRAMES_DIR.")
+@click.option("--fps", type=int, default=12, show_default=True,
+              help="Frames per second to extract when using --from-video.")
 @click.option("--preview", type=int, default=None, metavar="N", is_eager=True,
               help="Render only sheet N (1-indexed) as a PNG and exit. PDF is not produced.")
 @click.option("--format", "fmt", type=click.Choice(["pdf", "png"]), default="pdf",
@@ -80,53 +90,84 @@ def _load_order_file(order_file: Path, frames_dir: Path) -> list[Path]:
               help="Reserve a fixed bind strip of this width (mm) on the left of each cell.")
 @click.option("--bind-color", "bind_strip_color", type=str, default=None,
               help="Fill the bind strip with this color (name or hex). Omit for page background.")
-def main(ctx: click.Context, frames_dir: Path, preview: int | None, fmt: str, output: Path,
+def main(ctx: click.Context, frames_dir: Path | None, video_path: Path | None, fps: int,
+         preview: int | None, fmt: str, output: Path,
          cols: int, rows: int, dpi: int, margin_mm: float, background: str, glob_pattern: str,
          paper: str, landscape: bool, cut_marks: bool, cell_outline: bool, fit: str,
          order_file: Path | None, frame_numbers: bool, frame_number_color: str,
          frame_number_offset_mm: float, bind_strip_mm: float,
          bind_strip_color: str | None) -> None:
-    """Format flipbook FRAMES_DIR into a printable PDF or PNG pages."""
-    if order_file is not None:
-        if ctx.get_parameter_source("glob_pattern") == click.core.ParameterSource.COMMANDLINE:
-            click.echo("warning: --glob is ignored when --order-file is provided", err=True)
-        frames = _load_order_file(order_file, frames_dir)
-        if not frames:
-            raise click.ClickException(f"no frames listed in {order_file}")
-    else:
-        frames = sorted(frames_dir.glob(glob_pattern), key=_natural_key)
-        if not frames:
-            raise click.ClickException(f"no frames matched {glob_pattern!r} in {frames_dir}")
-    w, h = PAPER_SIZES_MM[paper]
-    page_size_mm = (h, w) if landscape else (w, h)
-    config = LayoutConfig(
-        cols=cols, rows=rows, dpi=dpi, margin_mm=margin_mm, background=background,
-        page_size_mm=page_size_mm,
-        cut_marks=cut_marks, cell_outline=cell_outline,
-        fit=fit,
-        frame_numbers=frame_numbers,
-        frame_number_color=frame_number_color,
-        frame_number_offset_mm=frame_number_offset_mm,
-        bind_strip_mm=bind_strip_mm,
-        bind_strip_color=bind_strip_color,
-    )
-    pages = render_sheets(frames, config)
+    """Format flipbook frames into a printable PDF or PNG pages.
 
-    if preview is not None:
-        if preview < 1 or preview > len(pages):
-            raise click.ClickException(
-                f"--preview {preview} out of range: {len(pages)} sheet(s) available"
+    FRAMES_DIR is the source directory of PNG frames. Omit when using --from-video.
+    """
+    with contextlib.ExitStack() as stack:
+        if video_path is not None:
+            if frames_dir is not None:
+                raise click.UsageError("FRAMES_DIR and --from-video are mutually exclusive")
+            if order_file is not None:
+                raise click.UsageError("--order-file and --from-video are mutually exclusive")
+            if shutil.which("ffmpeg") is None:
+                raise click.ClickException(
+                    "ffmpeg not found on PATH; install it to use --from-video"
+                )
+            tmpdir = stack.enter_context(tempfile.TemporaryDirectory())
+            tmp_path = Path(tmpdir)
+            proc = subprocess.run(
+                ["ffmpeg", "-y", "-i", str(video_path), "-vf", f"fps={fps}",
+                 str(tmp_path / "frame_%04d.png")],
+                capture_output=True,
             )
-        page = pages[preview - 1]
-        if output == Path("-"):
-            page.save(sys.stdout.buffer, format="PNG")
+            if proc.returncode != 0:
+                raise click.ClickException(
+                    f"ffmpeg failed (exit {proc.returncode}):\n{proc.stderr.decode()}"
+                )
+            frames = sorted(tmp_path.glob("*.png"), key=_natural_key)
+            if not frames:
+                raise click.ClickException("ffmpeg produced no frames from the video")
+        elif frames_dir is None:
+            raise click.UsageError("provide FRAMES_DIR or use --from-video <path>")
+        elif order_file is not None:
+            if ctx.get_parameter_source("glob_pattern") == click.core.ParameterSource.COMMANDLINE:
+                click.echo("warning: --glob is ignored when --order-file is provided", err=True)
+            frames = _load_order_file(order_file, frames_dir)
+            if not frames:
+                raise click.ClickException(f"no frames listed in {order_file}")
         else:
-            page.save(output, format="PNG", dpi=(dpi, dpi))
-            click.echo(f"preview sheet {preview}/{len(pages)} → {output}")
-        return
+            frames = sorted(frames_dir.glob(glob_pattern), key=_natural_key)
+            if not frames:
+                raise click.ClickException(f"no frames matched {glob_pattern!r} in {frames_dir}")
 
-    save_pages(pages, output, fmt=fmt, dpi=config.dpi)
-    click.echo(f"wrote {len(pages)} page(s) covering {len(frames)} frame(s) → {output}")
+        w, h = PAPER_SIZES_MM[paper]
+        page_size_mm = (h, w) if landscape else (w, h)
+        config = LayoutConfig(
+            cols=cols, rows=rows, dpi=dpi, margin_mm=margin_mm, background=background,
+            page_size_mm=page_size_mm,
+            cut_marks=cut_marks, cell_outline=cell_outline,
+            fit=fit,
+            frame_numbers=frame_numbers,
+            frame_number_color=frame_number_color,
+            frame_number_offset_mm=frame_number_offset_mm,
+            bind_strip_mm=bind_strip_mm,
+            bind_strip_color=bind_strip_color,
+        )
+        pages = render_sheets(frames, config)
+
+        if preview is not None:
+            if preview < 1 or preview > len(pages):
+                raise click.ClickException(
+                    f"--preview {preview} out of range: {len(pages)} sheet(s) available"
+                )
+            page = pages[preview - 1]
+            if output == Path("-"):
+                page.save(sys.stdout.buffer, format="PNG")
+            else:
+                page.save(output, format="PNG", dpi=(dpi, dpi))
+                click.echo(f"preview sheet {preview}/{len(pages)} → {output}")
+            return
+
+        save_pages(pages, output, fmt=fmt, dpi=config.dpi)
+        click.echo(f"wrote {len(pages)} page(s) covering {len(frames)} frame(s) → {output}")
 
 
 if __name__ == "__main__":
