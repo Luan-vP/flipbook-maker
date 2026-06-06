@@ -7,7 +7,7 @@ from textwrap import wrap as _wrap
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-from flipbook_maker.layout import PAPER_SIZES_MM, save_pages
+from flipbook_maker.layout import PAPER_SIZES_MM
 
 
 def _mm_to_px(mm: float, dpi: int) -> int:

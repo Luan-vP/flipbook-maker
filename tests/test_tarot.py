@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import pytest
-from PIL import Image
-
 from flipbook_maker.tarot import (
     READING_POSITIONS,
     TAROT_DECK,
