@@ -20,8 +20,8 @@ dev = [
 ]
 
 [project.scripts]
-flipbook-make = "flipbook_maker.cli:main"
-flipbook-tarot = "flipbook_maker.tarot_cli:tarot"
+flipbook-make = "flipbook_maker.flipbook.cli:main"
+flipbook-tarot = "flipbook_maker.tarot.cli:tarot"
 
 [build-system]
 requires = ["hatchling"]

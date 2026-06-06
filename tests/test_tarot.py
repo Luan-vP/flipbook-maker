@@ -90,7 +90,7 @@ def test_render_tarot_zine_no_cell_outline() -> None:
 
 
 def test_render_tarot_zine_save_pdf(tmp_path) -> None:
-    from flipbook_maker.layout import save_pages
+    from flipbook_maker import save_pages
 
     pages = render_tarot_zine(seed=7, dpi=72)
     out = tmp_path / "tarot.pdf"
@@ -138,7 +138,7 @@ def test_render_tarot_reading_page_numbers_toggle_changes_output() -> None:
 def test_cli_default_is_reading(tmp_path) -> None:
     from click.testing import CliRunner
 
-    from flipbook_maker.tarot_cli import tarot
+    from flipbook_maker.tarot.cli import tarot
 
     out = tmp_path / "reading.pdf"
     runner = CliRunner()
@@ -151,7 +151,7 @@ def test_cli_default_is_reading(tmp_path) -> None:
 def test_cli_random_flag_runs(tmp_path) -> None:
     from click.testing import CliRunner
 
-    from flipbook_maker.tarot_cli import tarot
+    from flipbook_maker.tarot.cli import tarot
 
     out = tmp_path / "grid.pdf"
     runner = CliRunner()
@@ -163,7 +163,7 @@ def test_cli_random_flag_runs(tmp_path) -> None:
 def test_cli_print_flag_runs(tmp_path) -> None:
     from click.testing import CliRunner
 
-    from flipbook_maker.tarot_cli import tarot
+    from flipbook_maker.tarot.cli import tarot
 
     out = tmp_path / "tarot.pdf"
     runner = CliRunner()
@@ -179,7 +179,7 @@ def test_cli_explicit_colors_override_print_flag(tmp_path) -> None:
     # An explicit --background must win even when --print is also passed.
     from click.testing import CliRunner
 
-    from flipbook_maker.tarot_cli import tarot
+    from flipbook_maker.tarot.cli import tarot
 
     out = tmp_path / "tarot.pdf"
     runner = CliRunner()

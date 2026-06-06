@@ -9,8 +9,8 @@ import pytest
 from click.testing import CliRunner
 from PIL import Image
 
-from flipbook_maker.cli import _natural_key, main
-from flipbook_maker.layout import PAPER_SIZES_MM, LayoutConfig, render_sheets
+from flipbook_maker import PAPER_SIZES_MM, LayoutConfig, render_sheets
+from flipbook_maker.flipbook.cli import _natural_key, main
 
 
 def _make_frame(path: Path, color: tuple[int, int, int] = (128, 128, 128)) -> None:
@@ -168,7 +168,7 @@ def test_from_video_no_ffmpeg(tmp_path: Path) -> None:
     video = tmp_path / "test.mp4"
     video.touch()
 
-    with patch("flipbook_maker.cli.shutil.which", return_value=None):
+    with patch("flipbook_maker.flipbook.cli.shutil.which", return_value=None):
         result = CliRunner().invoke(
             main,
             ["--from-video", str(video), "-o", str(tmp_path / "out.pdf")],

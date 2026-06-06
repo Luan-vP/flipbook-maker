@@ -10,7 +10,9 @@ from pathlib import Path
 
 import click
 
-from flipbook_maker.layout import PAPER_SIZES_MM, LayoutConfig, render_sheets, save_pages
+from flipbook_maker.core.io import save_pages
+from flipbook_maker.core.paper import PAPER_SIZES_MM
+from flipbook_maker.flipbook.layout import LayoutConfig, render_sheets
 
 
 def _default_output(ctx: click.Context, param: click.Parameter, value: Path | None) -> Path:

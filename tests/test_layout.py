@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from flipbook_maker.layout import LayoutConfig, render_sheets, save_pages, save_pdf
+from flipbook_maker import LayoutConfig, render_sheets, save_pages, save_pdf
 
 
 def _make_frame(path: Path, color: tuple[int, int, int]) -> None:
