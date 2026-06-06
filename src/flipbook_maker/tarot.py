@@ -242,3 +242,110 @@ def render_tarot_zine(
             )
 
     return [page]
+
+
+READING_POSITIONS: list[tuple[str, str]] = [
+    ("Past", "What has shaped this moment"),
+    ("Present", "Where you stand now"),
+    ("Future", "Where the current path leads"),
+]
+
+
+# Booklet page number -> (row, col, rotate180) on the flat sheet, for the
+# classic one-cut 8-page zine fold. The top row is printed upside down so the
+# pages read 1 -> 8 once the sheet is folded and the centre crease is cut.
+_ZINE_IMPOSITION: dict[int, tuple[int, int, bool]] = {
+    1: (1, 3, False),  # front cover
+    2: (0, 3, True),
+    3: (0, 2, True),
+    4: (0, 1, True),
+    5: (0, 0, True),
+    6: (1, 0, False),
+    7: (1, 1, False),
+    8: (1, 2, False),  # back
+}
+
+
+def _stamp_page_number(panel: Image.Image, number: int, dpi: int, foreground: str) -> None:
+    draw = ImageDraw.Draw(panel)
+    font = _load_mono_font(_mm_to_px(2.8, dpi))
+    label = str(number)
+    bbox = draw.textbbox((0, 0), label, font=font)
+    w = bbox[2] - bbox[0]
+    h = bbox[3] - bbox[1]
+    edge = _mm_to_px(4.0, dpi)
+    draw.text(
+        ((panel.width - w) // 2, panel.height - edge - h),
+        label,
+        font=font,
+        fill=ImageColor.getrgb(foreground),
+    )
+
+
+def render_tarot_reading(
+    seed: int | None = None,
+    dpi: int = 300,
+    paper: str = "a4",
+    landscape: bool = True,
+    margin_mm: float = 5.0,
+    background: str = "black",
+    foreground: str = "white",
+    cell_outline: bool = True,
+    page_numbers: bool = True,
+) -> list[Image.Image]:
+    """Render a 3-card Past/Present/Future reading as an 8-page foldable zine.
+
+    Three cards are drawn at random. The eight booklet pages are imposed onto a
+    single landscape sheet in one-cut zine order so that, once folded, they read
+    1 -> 8: a cover, then each position followed by the card drawn for it, then a
+    closing page.
+    """
+    rng = random.Random(seed)
+    past, present, future = rng.sample(TAROT_DECK, 3)
+
+    # (name, description) for booklet pages 1..8, in reading order.
+    booklet: list[tuple[str, str]] = [
+        ("Tarot", "A three-card reading"),                   # 1 front cover
+        READING_POSITIONS[0],                                # 2 Past
+        (past.name, past.description),                       # 3 Past card
+        READING_POSITIONS[1],                                # 4 Present
+        (present.name, present.description),                 # 5 Present card
+        READING_POSITIONS[2],                                # 6 Future
+        (future.name, future.description),                   # 7 Future card
+        ("Tarot", "fold · cut centre · read in order"),  # 8 back
+    ]
+
+    w_mm, h_mm = PAPER_SIZES_MM[paper]
+    if landscape:
+        w_mm, h_mm = h_mm, w_mm
+    page_w = _mm_to_px(w_mm, dpi)
+    page_h = _mm_to_px(h_mm, dpi)
+    margin = _mm_to_px(margin_mm, dpi)
+    cols, rows = 4, 2
+    cell_w = (page_w - 2 * margin) // cols
+    cell_h = (page_h - 2 * margin) // rows
+
+    sheet = Image.new("RGB", (page_w, page_h), ImageColor.getrgb(background))
+    draw = ImageDraw.Draw(sheet)
+
+    for page_no, (name, desc) in enumerate(booklet, start=1):
+        panel = _render_card_panel(
+            TarotCard(name, desc), cell_w, cell_h, dpi, background, foreground
+        )
+        if page_numbers:
+            _stamp_page_number(panel, page_no, dpi, foreground)
+        row, col, rotate = _ZINE_IMPOSITION[page_no]
+        if rotate:
+            panel = panel.rotate(180)
+        x = margin + col * cell_w
+        y = margin + row * cell_h
+        sheet.paste(panel, (x, y))
+        if cell_outline:
+            outline_px = max(1, _mm_to_px(0.2, dpi))
+            draw.rectangle(
+                [(x, y), (x + cell_w, y + cell_h)],
+                outline=ImageColor.getrgb(foreground),
+                width=outline_px,
+            )
+
+    return [sheet]

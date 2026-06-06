@@ -3,7 +3,14 @@ from __future__ import annotations
 import pytest
 from PIL import Image
 
-from flipbook_maker.tarot import TAROT_DECK, TarotCard, _render_card_panel, render_tarot_zine
+from flipbook_maker.tarot import (
+    READING_POSITIONS,
+    TAROT_DECK,
+    TarotCard,
+    _render_card_panel,
+    render_tarot_reading,
+    render_tarot_zine,
+)
 
 
 def test_tarot_deck_count() -> None:
@@ -100,6 +107,60 @@ def test_render_tarot_zine_print_friendly_is_white() -> None:
     # Black-on-white for printing: the page background should be white.
     pages = render_tarot_zine(seed=42, dpi=72, background="white", foreground="black")
     assert pages[0].getpixel((0, 0)) == (255, 255, 255)
+
+
+def test_reading_has_three_positions() -> None:
+    assert [name for name, _ in READING_POSITIONS] == ["Past", "Present", "Future"]
+
+
+def test_render_tarot_reading_single_landscape_rgb_page() -> None:
+    pages = render_tarot_reading(seed=42, dpi=72)
+    assert len(pages) == 1
+    assert pages[0].mode == "RGB"
+    assert pages[0].width > pages[0].height
+
+
+def test_render_tarot_reading_reproducible() -> None:
+    a = render_tarot_reading(seed=42, dpi=72)
+    b = render_tarot_reading(seed=42, dpi=72)
+    assert list(a[0].getdata()) == list(b[0].getdata())
+
+
+def test_render_tarot_reading_different_seeds_differ() -> None:
+    a = render_tarot_reading(seed=1, dpi=72)
+    b = render_tarot_reading(seed=2, dpi=72)
+    assert list(a[0].getdata()) != list(b[0].getdata())
+
+
+def test_render_tarot_reading_page_numbers_toggle_changes_output() -> None:
+    with_nums = render_tarot_reading(seed=3, dpi=72, page_numbers=True)
+    without = render_tarot_reading(seed=3, dpi=72, page_numbers=False)
+    assert list(with_nums[0].getdata()) != list(without[0].getdata())
+
+
+def test_cli_default_is_reading(tmp_path) -> None:
+    from click.testing import CliRunner
+
+    from flipbook_maker.tarot_cli import tarot
+
+    out = tmp_path / "reading.pdf"
+    runner = CliRunner()
+    result = runner.invoke(tarot, ["--seed", "42", "--dpi", "72", "-o", str(out)])
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+    assert out.read_bytes()[:4] == b"%PDF"
+
+
+def test_cli_random_flag_runs(tmp_path) -> None:
+    from click.testing import CliRunner
+
+    from flipbook_maker.tarot_cli import tarot
+
+    out = tmp_path / "grid.pdf"
+    runner = CliRunner()
+    result = runner.invoke(tarot, ["--random", "--seed", "42", "--dpi", "72", "-o", str(out)])
+    assert result.exit_code == 0, result.output
+    assert out.exists()
 
 
 def test_cli_print_flag_runs(tmp_path) -> None:
