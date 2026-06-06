@@ -139,11 +139,15 @@ def main() -> None:
                          "upright on short-edge flip. Default: long (no rotation).")
     ap.add_argument("--dpi", type=int, default=300,
                     help="Output raster DPI. Default: 300.")
+    ap.add_argument("--dark", action="store_true",
+                    help="Render the back white-on-black. Default is black-on-white "
+                         "(print-friendly, saves ink and matches a white front).")
     args = ap.parse_args()
 
     if not args.front.exists():
         sys.exit(f"front not found: {args.front}")
     grid = parse_grid(args.grid)
+    bg, fg = ("black", "white") if args.dark else ("white", "black")
 
     front_img = load_front(args.front, args.dpi)
     landscape = front_img.width >= front_img.height
@@ -155,9 +159,10 @@ def main() -> None:
     front = fit_onto(front_img, size, bg="white")
     if grid is not None:
         back = render_grid_back(args.seed, args.dpi, size, grid[0], grid[1],
-                                margin_mm=5.0, bg="black", fg="white")
+                                margin_mm=5.0, bg=bg, fg=fg)
     else:
-        back = render_tarot_reading(seed=args.seed, dpi=args.dpi, landscape=landscape)[0]
+        back = render_tarot_reading(seed=args.seed, dpi=args.dpi, landscape=landscape,
+                                    background=bg, foreground=fg)[0]
         if back.size != size:
             back = back.resize(size, Image.LANCZOS)
     if args.flip == "short":

@@ -39,6 +39,8 @@ uv run python skills/tarot-duplex/duplex.py FRONT [-o OUT.pdf] [--paper a4] [--g
 - **`--seed N`** — reproducible draw; same seed as `flipbook-tarot --seed N`.
 - **`--flip`** — duplex binding edge (see below). Default `long`.
 - **`--dpi`** — output raster DPI. Default `300`.
+- **`--dark`** — render the back white-on-black. Default is **black-on-white**
+  (print-friendly — saves ink and matches a white front).
 
 ### Back layout: fold zine vs. grid
 
