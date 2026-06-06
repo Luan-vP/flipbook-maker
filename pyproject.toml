@@ -18,6 +18,9 @@ dev = [
     "ruff>=0.6",
     "py5>=0.10",
 ]
+pdf = [
+    "pypdfium2>=4",
+]
 
 [project.scripts]
 flipbook-make = "flipbook_maker.cli:main"
