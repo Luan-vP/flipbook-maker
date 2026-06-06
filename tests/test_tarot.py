@@ -94,3 +94,40 @@ def test_render_tarot_zine_save_pdf(tmp_path) -> None:
     assert out.exists()
     assert out.stat().st_size > 0
     assert out.read_bytes()[:4] == b"%PDF"
+
+
+def test_render_tarot_zine_print_friendly_is_white() -> None:
+    # Black-on-white for printing: the page background should be white.
+    pages = render_tarot_zine(seed=42, dpi=72, background="white", foreground="black")
+    assert pages[0].getpixel((0, 0)) == (255, 255, 255)
+
+
+def test_cli_print_flag_runs(tmp_path) -> None:
+    from click.testing import CliRunner
+
+    from flipbook_maker.tarot_cli import tarot
+
+    out = tmp_path / "tarot.pdf"
+    runner = CliRunner()
+    result = runner.invoke(
+        tarot, ["--print", "--seed", "42", "--dpi", "72", "-o", str(out)]
+    )
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+    assert out.read_bytes()[:4] == b"%PDF"
+
+
+def test_cli_explicit_colors_override_print_flag(tmp_path) -> None:
+    # An explicit --background must win even when --print is also passed.
+    from click.testing import CliRunner
+
+    from flipbook_maker.tarot_cli import tarot
+
+    out = tmp_path / "tarot.pdf"
+    runner = CliRunner()
+    result = runner.invoke(
+        tarot,
+        ["--print", "--background", "navy", "--seed", "1", "--dpi", "72", "-o", str(out)],
+    )
+    assert result.exit_code == 0, result.output
+    assert out.exists()

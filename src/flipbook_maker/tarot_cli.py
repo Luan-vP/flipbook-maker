@@ -25,10 +25,15 @@ from flipbook_maker.tarot import render_tarot_zine
     show_default=True,
     help="Paper size preset.",
 )
-@click.option("--background", type=str, default="black", show_default=True,
-              help="Background color (name or hex).")
-@click.option("--foreground", type=str, default="white", show_default=True,
-              help="Text and border color (name or hex).")
+@click.option(
+    "-p", "--print", "print_friendly", is_flag=True, default=False,
+    help="Print-friendly black-on-white (saves ink). Overridden by explicit "
+         "--background/--foreground.",
+)
+@click.option("--background", type=str, default=None,
+              help="Background color (name or hex). Default: black (white with --print).")
+@click.option("--foreground", type=str, default=None,
+              help="Text and border color (name or hex). Default: white (black with --print).")
 @click.option("--no-cell-outline", is_flag=True, default=False,
               help="Omit the cut-guide outlines between panels.")
 def tarot(
@@ -36,8 +41,9 @@ def tarot(
     output: Path,
     dpi: int,
     paper: str,
-    background: str,
-    foreground: str,
+    print_friendly: bool,
+    background: str | None,
+    foreground: str | None,
     no_cell_outline: bool,
 ) -> None:
     """Generate an 8-panel tarot zine on a single landscape sheet.
@@ -45,7 +51,12 @@ def tarot(
     Prints one A4 landscape page with 8 randomly selected tarot cards arranged
     in a 4x2 grid, ready to fold into a t-fold zine. Each panel shows the card
     name and a short description centered in monospace text.
+
+    Use --print for a black-on-white sheet that is easy on printer ink.
     """
+    default_bg, default_fg = ("white", "black") if print_friendly else ("black", "white")
+    background = background or default_bg
+    foreground = foreground or default_fg
     pages = render_tarot_zine(
         seed=seed,
         dpi=dpi,
