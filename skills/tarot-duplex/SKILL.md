@@ -23,15 +23,29 @@ two share seed logic — see Reproducing a chat reading below.
 Runs in the project environment (needs `flipbook_maker` + Pillow):
 
 ```bash
-uv run python skills/tarot-duplex/duplex.py FRONT [-o OUT.pdf] [--seed N] [--flip long|short] [--dpi 300]
+uv run python skills/tarot-duplex/duplex.py FRONT [-o OUT.pdf] [--paper a4] [--grid CxR] [--seed N] [--flip long|short] [--dpi 300]
 ```
 
 - **`FRONT`** — the one-page zine: `.jpg`/`.png`/etc., or a single-page `.pdf`
   (first page is used).
 - **`-o/--output`** — output path (default: `<front>_duplex.pdf`).
+- **`--paper`** — output paper size (`a4`/`a3`/`letter`/`legal`). Default `a4`.
+  The front is fitted onto the page (letterboxed, never cropped) and both pages
+  come out at exactly this size for clean duplex printing.
+- **`--grid CxR`** — lay the back out as an upright C-column × R-row grid instead
+  of the default fold zine. Use this to **match a front that is itself a plain
+  grid** (e.g. `--grid 2x4` for a 2-column, 4-row zine) so the tarot panels sit
+  behind the front panels. Each row pairs a position with its card.
 - **`--seed N`** — reproducible draw; same seed as `flipbook-tarot --seed N`.
 - **`--flip`** — duplex binding edge (see below). Default `long`.
 - **`--dpi`** — output raster DPI. Default `300`.
+
+### Back layout: fold zine vs. grid
+
+- **Default (no `--grid`)** — the back is the reading's own landscape 4×2 t-fold
+  zine (cover, positions facing their cards, top row inverted to fold).
+- **`--grid CxR`** — an upright grid matching a front drawn as a plain grid. Read
+  the front first (count its columns × rows) and pass the same dimensions.
 
 **PDF fronts** need the optional `pdf` extra:
 
