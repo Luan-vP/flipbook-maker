@@ -4,8 +4,9 @@ from pathlib import Path
 
 import click
 
-from flipbook_maker.layout import PAPER_SIZES_MM, save_pages
-from flipbook_maker.tarot import render_tarot_reading, render_tarot_zine
+from flipbook_maker.core.io import save_pages
+from flipbook_maker.core.paper import PAPER_SIZES_MM
+from flipbook_maker.tarot.render import render_tarot_reading, render_tarot_zine
 
 
 @click.command()

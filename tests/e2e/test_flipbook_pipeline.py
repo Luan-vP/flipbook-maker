@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from flipbook_maker.cli import main
+from flipbook_maker.flipbook.cli import main
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKETCH = Path(__file__).with_name("generate_p5_frames.py")

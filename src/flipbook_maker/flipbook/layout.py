@@ -6,20 +6,10 @@ from typing import Literal
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-PAPER_SIZES_MM: dict[str, tuple[float, float]] = {
-    "a4": (210.0, 297.0),
-    "a3": (297.0, 420.0),
-    "letter": (215.9, 279.4),
-    "legal": (215.9, 355.6),
-}
-
-A4_MM = PAPER_SIZES_MM["a4"]
+from flipbook_maker.core.paper import A4_MM
+from flipbook_maker.core.units import mm_to_px
 
 FitMode = Literal["contain", "cover", "stretch"]
-
-
-def _mm_to_px(mm: float, dpi: int) -> int:
-    return int(round(mm * dpi / 25.4))
 
 
 @dataclass(frozen=True)
@@ -40,10 +30,10 @@ class LayoutConfig:
     bind_strip_color: str | None = None
 
     def page_px(self) -> tuple[int, int]:
-        return _mm_to_px(self.page_size_mm[0], self.dpi), _mm_to_px(self.page_size_mm[1], self.dpi)
+        return mm_to_px(self.page_size_mm[0], self.dpi), mm_to_px(self.page_size_mm[1], self.dpi)
 
     def margin_px(self) -> int:
-        return _mm_to_px(self.margin_mm, self.dpi)
+        return mm_to_px(self.margin_mm, self.dpi)
 
     def cell_px(self) -> tuple[int, int]:
         w, h = self.page_px()
@@ -51,7 +41,7 @@ class LayoutConfig:
         return (w - 2 * m) // self.cols, (h - 2 * m) // self.rows
 
     def bind_strip_px(self) -> int:
-        return _mm_to_px(self.bind_strip_mm, self.dpi)
+        return mm_to_px(self.bind_strip_mm, self.dpi)
 
 
 def _load_background(spec: str | Path, size: tuple[int, int]) -> Image.Image:
@@ -116,8 +106,8 @@ def _draw_frame_number(
 ) -> None:
     font = ImageFont.load_default()
     label = str(frame_idx)
-    offset_px = _mm_to_px(config.frame_number_offset_mm, config.dpi)
-    bind_px = _mm_to_px(config.bind_strip_mm, config.dpi)
+    offset_px = mm_to_px(config.frame_number_offset_mm, config.dpi)
+    bind_px = mm_to_px(config.bind_strip_mm, config.dpi)
     # When there's an explicit strip, keep numbers visible inside it.
     # Use the larger of the default offset and half the strip width so the
     # number sits comfortably in wider strips without being at the wall.
@@ -165,9 +155,9 @@ def render_sheets(frames: list[Path], config: LayoutConfig) -> list[Image.Image]
         if config.cut_marks or config.cell_outline:
             page_w, page_h = page_size
             draw = ImageDraw.Draw(page)
-            tick_len = _mm_to_px(3.0, config.dpi)
-            mark_w = max(1, _mm_to_px(0.25, config.dpi))
-            outline_w = max(1, _mm_to_px(0.2, config.dpi))
+            tick_len = mm_to_px(3.0, config.dpi)
+            mark_w = max(1, mm_to_px(0.25, config.dpi))
+            outline_w = max(1, mm_to_px(0.2, config.dpi))
 
             for row in range(config.rows):
                 for col in range(config.cols):
@@ -196,37 +186,3 @@ def render_sheets(frames: list[Path], config: LayoutConfig) -> list[Image.Image]
 
         pages.append(page)
     return pages
-
-
-def _save_pdf(pages: list[Image.Image], out: Path, dpi: int = 300) -> None:
-    if not pages:
-        raise ValueError("no pages to save")
-    first, rest = pages[0], pages[1:]
-    first.save(out, "PDF", resolution=float(dpi), save_all=True, append_images=rest)
-
-
-def _save_pngs(pages: list[Image.Image], out: Path, dpi: int = 300) -> None:
-    if not pages:
-        raise ValueError("no pages to save")
-    if out.suffix == "" or str(out).endswith("/"):
-        directory = out
-        stem = "page"
-    else:
-        directory = out.parent
-        stem = out.stem
-    directory.mkdir(parents=True, exist_ok=True)
-    for i, page in enumerate(pages, start=1):
-        page.save(directory / f"{stem}_{i:03d}.png", "PNG", dpi=(dpi, dpi))
-
-
-def save_pages(pages: list[Image.Image], out: Path, fmt: str = "pdf", dpi: int = 300) -> None:
-    if fmt == "pdf":
-        _save_pdf(pages, out, dpi=dpi)
-    elif fmt == "png":
-        _save_pngs(pages, out, dpi=dpi)
-    else:
-        raise ValueError(f"unknown format {fmt!r}; expected 'pdf' or 'png'")
-
-
-def save_pdf(pages: list[Image.Image], out: Path, dpi: int = 300) -> None:
-    _save_pdf(pages, out, dpi=dpi)

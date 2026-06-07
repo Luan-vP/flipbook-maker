@@ -1,0 +1,96 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class TarotCard:
+    name: str
+    description: str
+
+
+TAROT_DECK: list[TarotCard] = [
+    # Major Arcana
+    TarotCard("The Fool", "A new beginning; leap of faith into the unknown"),
+    TarotCard("The Magician", "Will and skill united; the power to manifest"),
+    TarotCard("The High Priestess", "Hidden wisdom; trust your intuition"),
+    TarotCard("The Empress", "Abundance and nature; nurturing creation"),
+    TarotCard("The Emperor", "Structure and authority; stability built on logic"),
+    TarotCard("The Hierophant", "Tradition and guidance; seek wise counsel"),
+    TarotCard("The Lovers", "Choice and union; values aligned in harmony"),
+    TarotCard("The Chariot", "Willpower and victory; discipline drives progress"),
+    TarotCard("Strength", "Inner courage and compassion; gentle power prevails"),
+    TarotCard("The Hermit", "Solitude and reflection; seek the light within"),
+    TarotCard("Wheel of Fortune", "Cycles and fate; embrace constant change"),
+    TarotCard("Justice", "Balance and truth; actions have consequences"),
+    TarotCard("The Hanged Man", "Surrender and new perspective; pause to see clearly"),
+    TarotCard("Death", "Transformation and ending; make way for renewal"),
+    TarotCard("Temperance", "Balance and patience; blend opposites with care"),
+    TarotCard("The Devil", "Shadow and bondage; face what holds you captive"),
+    TarotCard("The Tower", "Sudden upheaval; what is false must fall"),
+    TarotCard("The Star", "Hope and renewal; light returns after darkness"),
+    TarotCard("The Moon", "Illusion and the subconscious; navigate the unknown"),
+    TarotCard("The Sun", "Joy and vitality; clarity and success shine forth"),
+    TarotCard("Judgement", "Reckoning and awakening; heed the higher call"),
+    TarotCard("The World", "Completion and wholeness; the journey fulfilled"),
+    # Wands
+    TarotCard("Ace of Wands", "A spark of inspiration; new creative potential"),
+    TarotCard("Two of Wands", "Planning and vision; the world awaits your move"),
+    TarotCard("Three of Wands", "Expansion and foresight; ventures set in motion"),
+    TarotCard("Four of Wands", "Celebration and homecoming; harmony achieved"),
+    TarotCard("Five of Wands", "Competition and conflict; creative tension rises"),
+    TarotCard("Six of Wands", "Victory and recognition; your efforts acclaimed"),
+    TarotCard("Seven of Wands", "Stand your ground; defend what you have built"),
+    TarotCard("Eight of Wands", "Swift movement; news and action come quickly"),
+    TarotCard("Nine of Wands", "Perseverance under strain; nearly there, hold on"),
+    TarotCard("Ten of Wands", "Burden and responsibility; you carry too much"),
+    TarotCard("Page of Wands", "Enthusiasm and curiosity; a message of adventure"),
+    TarotCard("Knight of Wands", "Bold action and daring; rush toward the horizon"),
+    TarotCard("Queen of Wands", "Confidence and warmth; magnetic creative force"),
+    TarotCard("King of Wands", "Vision and leadership; inspire with bold purpose"),
+    # Cups
+    TarotCard("Ace of Cups", "An overflow of feeling; love and new beginnings"),
+    TarotCard("Two of Cups", "Mutual connection; a bond of equal love forms"),
+    TarotCard("Three of Cups", "Celebration and friendship; joy shared together"),
+    TarotCard("Four of Cups", "Contemplation and apathy; consider what you ignore"),
+    TarotCard("Five of Cups", "Grief and loss; look beyond what has spilled"),
+    TarotCard("Six of Cups", "Nostalgia and innocence; gifts from the past return"),
+    TarotCard("Seven of Cups", "Fantasy and choice; not all that glitters is real"),
+    TarotCard("Eight of Cups", "Walking away; seek deeper meaning beyond comfort"),
+    TarotCard("Nine of Cups", "Contentment and wishes; satisfaction draws near"),
+    TarotCard("Ten of Cups", "Lasting happiness; family and heart fully at peace"),
+    TarotCard("Page of Cups", "Creative dreaming; a tender and intuitive message"),
+    TarotCard("Knight of Cups", "Romantic pursuit; follow the heart's quiet calling"),
+    TarotCard("Queen of Cups", "Emotional depth and empathy; nurture with wisdom"),
+    TarotCard("King of Cups", "Emotional mastery; lead with compassion and calm"),
+    # Swords
+    TarotCard("Ace of Swords", "Mental clarity; a breakthrough cuts to the truth"),
+    TarotCard("Two of Swords", "Indecision and stalemate; remove the blindfold"),
+    TarotCard("Three of Swords", "Heartbreak and grief; truth, though it hurts, heals"),
+    TarotCard("Four of Swords", "Rest and recovery; retreat to restore your mind"),
+    TarotCard("Five of Swords", "Conflict and defeat; choose your battles wisely"),
+    TarotCard("Six of Swords", "Transition and movement; sail toward calmer waters"),
+    TarotCard("Seven of Swords", "Strategy and deception; act with careful cunning"),
+    TarotCard("Eight of Swords", "Feeling trapped by thought; the bonds are your own"),
+    TarotCard("Nine of Swords", "Anxiety and dread; fears loom larger in the dark"),
+    TarotCard("Ten of Swords", "Endings and rock bottom; it is over; now rebuild"),
+    TarotCard("Page of Swords", "Curiosity and vigilance; gather facts before acting"),
+    TarotCard("Knight of Swords", "Charging ahead; act swiftly before you overthink"),
+    TarotCard("Queen of Swords", "Clear intellect and directness; speak what is true"),
+    TarotCard("King of Swords", "Authority of mind; lead with ethics and precision"),
+    # Pentacles
+    TarotCard("Ace of Pentacles", "Material beginnings; a seed of prosperity planted"),
+    TarotCard("Two of Pentacles", "Juggling and balance; manage change with grace"),
+    TarotCard("Three of Pentacles", "Collaboration and craft; great work needs teamwork"),
+    TarotCard("Four of Pentacles", "Security and control; loosen the grip on comfort"),
+    TarotCard("Five of Pentacles", "Hardship and lack; help is closer than it seems"),
+    TarotCard("Six of Pentacles", "Generosity and fairness; give and receive freely"),
+    TarotCard("Seven of Pentacles", "Investment and patience; growth takes time to show"),
+    TarotCard("Eight of Pentacles", "Diligence and mastery; hone your craft with care"),
+    TarotCard("Nine of Pentacles", "Abundance and self-reliance; enjoy your harvest"),
+    TarotCard("Ten of Pentacles", "Legacy and lasting wealth; roots run deep and true"),
+    TarotCard("Page of Pentacles", "Study and ambition; plant seeds of future skill"),
+    TarotCard("Knight of Pentacles", "Methodical effort; slow and steady brings results"),
+    TarotCard("Queen of Pentacles", "Practical nurturing; tend your world with loving care"),
+    TarotCard("King of Pentacles", "Mastery of the material; lead through steady prosperity"),
+]
