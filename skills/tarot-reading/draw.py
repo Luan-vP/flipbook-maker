@@ -69,7 +69,7 @@ def draw(seed: int | None = None) -> dict:
     cards = random.Random(seed).sample(deck, 3)
     reading = [
         {"position": pos, "prompt": PROMPTS[pos], "card": name, "meaning": meaning}
-        for pos, (name, meaning) in zip(POSITIONS, cards)
+        for pos, (name, meaning) in zip(POSITIONS, cards, strict=True)
     ]
     return {"seed": seed, "reading": reading}
 
