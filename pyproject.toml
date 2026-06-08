@@ -25,6 +25,7 @@ pdf = [
 [project.scripts]
 flipbook-make = "flipbook_maker.flipbook.cli:main"
 flipbook-tarot = "flipbook_maker.tarot.cli:tarot"
+flipbook-cootie = "flipbook_maker.cootie.cli:cootie"
 
 [build-system]
 requires = ["hatchling"]
