@@ -79,6 +79,9 @@ def _load_order_file(order_file: Path, frames_dir: Path) -> list[Path]:
               help="Draw a thin hairline rectangle around every cell.")
 @click.option("--fit", type=click.Choice(["contain", "cover", "stretch"]), default="contain",
               show_default=True, help="How frames are scaled into each cell.")
+@click.option("--fill", type=click.Choice(["row", "column"]), default="row", show_default=True,
+              help="Cell fill order: 'row' left-to-right then down, "
+                   "'column' top-to-bottom then across.")
 @click.option("--order-file", type=click.Path(exists=True, dir_okay=False, path_type=Path),
               default=None,
               help="Newline-delimited list of frame paths (absolute or relative to frames_dir).")
@@ -96,6 +99,7 @@ def main(ctx: click.Context, frames_dir: Path | None, video_path: Path | None, f
          preview: int | None, fmt: str, output: Path,
          cols: int, rows: int, dpi: int, margin_mm: float, background: str, glob_pattern: str,
          paper: str, landscape: bool, cut_marks: bool, cell_outline: bool, fit: str,
+         fill: str,
          order_file: Path | None, frame_numbers: bool, frame_number_color: str,
          frame_number_offset_mm: float, bind_strip_mm: float,
          bind_strip_color: str | None) -> None:
@@ -147,6 +151,7 @@ def main(ctx: click.Context, frames_dir: Path | None, video_path: Path | None, f
             page_size_mm=page_size_mm,
             cut_marks=cut_marks, cell_outline=cell_outline,
             fit=fit,
+            fill=fill,
             frame_numbers=frame_numbers,
             frame_number_color=frame_number_color,
             frame_number_offset_mm=frame_number_offset_mm,

@@ -126,3 +126,17 @@ the full cell width the number may be overdrawn by the frame image. Prefer
 The page is divided into `cols × rows` cells. Within each cell the frame is
 scaled to fit (preserving aspect ratio) and pasted against the right wall,
 vertically centred. Cut along the cell boundaries and bind the left edges.
+
+### Fill order
+
+`--fill` controls the order frames are placed into cells:
+
+```bash
+flipbook-make frames/ --fill row     # default: left-to-right, then down
+flipbook-make frames/ --fill column  # top-to-bottom, then across columns
+```
+
+`row` (the default) fills each row left-to-right before moving down.
+`column` runs each column top-to-bottom before moving to the next column —
+handy when you cut into vertical strips. Frame numbers (`--frame-numbers`)
+follow whichever order is selected.
