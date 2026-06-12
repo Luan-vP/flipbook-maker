@@ -68,18 +68,15 @@
 
       /* ── Flipbook tab layout ── */
       #tab-flipbook {
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        grid-template-rows: auto 1fr;
-        gap: 0;
+        display: flex;
+        flex-direction: column;
         height: calc(100vh - 52px);
       }
 
       /* ── Upload area ── */
       #upload-area {
-        grid-column: 1 / -1;
         border-bottom: 1px solid var(--border);
-        padding: 1rem 1.5rem;
+        padding: 0.75rem 1.5rem;
         display: flex;
         align-items: center;
         gap: 1rem;
@@ -91,9 +88,10 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        background: var(--accent);
-        color: #111;
-        font-weight: 600;
+        background: var(--surface2);
+        color: var(--text);
+        border: 1px solid var(--border);
+        font-weight: 500;
         padding: 0.45rem 1rem;
         border-radius: var(--radius);
         cursor: pointer;
@@ -101,51 +99,43 @@
         white-space: nowrap;
         transition: background 0.15s;
       }
-      #upload-label:hover { background: var(--accent-hover); }
-
-      #upload-area.drag-over { outline: 2px dashed var(--accent); outline-offset: -4px; }
+      #upload-label:hover { background: var(--border); }
 
       #upload-input { display: none; }
 
-      #frame-count { color: var(--text-muted); font-size: 0.85rem; }
-
-      #thumbnail-strip {
-        display: flex;
-        gap: 4px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      #thumbnail-strip canvas {
-        border-radius: 3px;
-        object-fit: cover;
-        border: 1px solid var(--border);
-      }
-      .more-badge {
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 0 6px;
-        font-size: 0.8rem;
+      #file-name {
         color: var(--text-muted);
+        font-size: 0.85rem;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      /* ── Controls sidebar ── */
-      #controls-panel {
-        grid-column: 1;
-        grid-row: 2;
-        overflow-y: auto;
-        border-right: 1px solid var(--border);
+      /* ── Advanced settings panel ── */
+      #advanced-panel {
+        border-bottom: 1px solid var(--border);
         background: var(--surface);
-        padding: 1rem;
+        padding: 1rem 1.5rem;
+        overflow-y: auto;
+        max-height: 60vh;
       }
 
-      #controls-panel fieldset {
+      #advanced-panel form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      #advanced-panel fieldset {
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        margin: 0 0 0.75rem;
+        margin: 0;
         padding: 0.6rem 0.8rem 0.75rem;
+        min-width: 180px;
       }
-      #controls-panel legend {
+      #advanced-panel legend {
         font-size: 0.78rem;
         font-weight: 600;
         letter-spacing: 0.06em;
@@ -191,8 +181,7 @@
 
       /* ── Preview area ── */
       #preview-area {
-        grid-column: 2;
-        grid-row: 2;
+        flex: 1;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -358,16 +347,21 @@
 
         <div id="upload-area">
           <label id="upload-label" for="upload-input">
-            ↑ Upload frames
+            ↑ Select video
           </label>
-          <input id="upload-input" type="file" multiple accept=".png,image/png,.zip,application/zip" />
-          <span id="frame-count">No frames loaded</span>
-          <div id="thumbnail-strip"></div>
+          <input id="upload-input" type="file" accept="video/*" />
+          <span id="file-name">No file selected</span>
+          <button type="button" id="btn-go" class="action-btn primary" disabled>Go</button>
+          <button type="button" id="btn-advanced-toggle" class="action-btn">Advanced ▾</button>
+          <div style="margin-left:auto;display:flex;gap:0.5rem;align-items:center;">
+            <progress id="render-progress" value="0" max="100" hidden style="width:120px;height:6px;"></progress>
+            <button type="button" id="btn-download-pdf" class="action-btn" disabled>PDF</button>
+            <button type="button" id="btn-download-png" class="action-btn" disabled>PNGs (ZIP)</button>
+          </div>
         </div>
 
-        <div id="controls-panel">
+        <div id="advanced-panel" hidden>
           <form id="controls" autocomplete="off">
-
             <fieldset>
               <legend>Page</legend>
               <div class="field-row">
@@ -409,6 +403,10 @@
               <div class="field-row">
                 <label for="rows">Rows</label>
                 <input id="rows" type="number" name="rows" value="8" min="1" max="20" />
+              </div>
+              <div class="field-row">
+                <label for="pages">Pages</label>
+                <input id="pages" type="number" name="pages" value="3" min="1" max="20" />
               </div>
             </fieldset>
 
@@ -459,22 +457,6 @@
                 <input id="bindStripColor" type="text" name="bindStripColor" placeholder="none" />
               </div>
             </fieldset>
-
-            <div style="padding: 0.25rem 0;">
-              <button type="button" id="btn-render" class="action-btn primary" disabled style="width:100%">
-                Render
-              </button>
-              <progress id="render-progress" value="0" max="100" hidden style="width:100%"></progress>
-            </div>
-
-            <div class="btn-row">
-              <button type="button" id="btn-download-pdf" class="action-btn" disabled style="flex:1">
-                PDF
-              </button>
-              <button type="button" id="btn-download-png" class="action-btn" disabled style="flex:1">
-                PNGs (ZIP)
-              </button>
-            </div>
           </form>
         </div>
 

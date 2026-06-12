@@ -10,6 +10,48 @@ async function loadImageBitmap(blob: Blob): Promise<ImageBitmap> {
   return createImageBitmap(blob);
 }
 
+export async function loadVideo(
+  file: File,
+  frameCount: number,
+  onProgress?: (current: number, total: number) => void,
+): Promise<UploadedFrame[]> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.muted = true;
+  video.preload = "auto";
+  video.src = url;
+
+  await new Promise<void>((resolve, reject) => {
+    video.addEventListener("loadedmetadata", () => resolve(), { once: true });
+    video.addEventListener("error", () => reject(new Error("Failed to load video")), { once: true });
+  });
+
+  const duration = video.duration;
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d")!;
+
+  const frames: UploadedFrame[] = [];
+
+  for (let i = 0; i < frameCount; i++) {
+    video.currentTime = (i / frameCount) * duration;
+    await new Promise<void>((resolve) => {
+      video.addEventListener("seeked", () => resolve(), { once: true });
+    });
+    ctx.drawImage(video, 0, 0);
+    const blob = await new Promise<Blob>((resolve) =>
+      canvas.toBlob((b) => resolve(b!), "image/png"),
+    );
+    const bitmap = await createImageBitmap(blob);
+    frames.push({ name: `frame_${String(i).padStart(4, "0")}.png`, bitmap });
+    onProgress?.(i + 1, frameCount);
+  }
+
+  URL.revokeObjectURL(url);
+  return frames;
+}
+
 export async function loadFiles(files: FileList | File[]): Promise<UploadedFrame[]> {
   const fileArray = Array.from(files);
 
