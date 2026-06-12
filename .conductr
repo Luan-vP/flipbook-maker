@@ -1,7 +1,7 @@
 # Project config for flipbook-maker.
 # `conductr begin` reads `tag` and `repo`; other fields are reserved.
 
-project_tag = "flipbook"
+project_tag = "flipbook-maker"
 repo        = "Luan-vP/flipbook-maker"
 
 [band]

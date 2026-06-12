@@ -16,10 +16,16 @@ dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "ruff>=0.6",
+    "py5>=0.10",
+]
+pdf = [
+    "pypdfium2>=4",
 ]
 
 [project.scripts]
-flipbook-make = "flipbook_maker.cli:main"
+flipbook-make = "flipbook_maker.flipbook.cli:main"
+flipbook-tarot = "flipbook_maker.tarot.cli:tarot"
+flipbook-cootie = "flipbook_maker.cootie.cli:cootie"
 
 [build-system]
 requires = ["hatchling"]

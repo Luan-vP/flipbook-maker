@@ -1,0 +1,19 @@
+{
+  "name": "flipbook-maker-web",
+  "version": "0.1.0",
+  "description": "Browser-based flipbook maker — static, client-side only",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "jspdf": "^2.5.1",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10"
+  }
+}
