@@ -1,4 +1,4 @@
-import { loadFiles, UploadedFrame } from "./ui/upload";
+import { loadVideo, UploadedFrame } from "./ui/upload";
 import { readLayoutConfig } from "./ui/controls";
 import { renderSheets } from "./core/layout";
 import { savePdf, savePages } from "./core/io";
@@ -25,11 +25,11 @@ let currentSheetIndex = 0;
 // ── DOM refs ───────────────────────────────────────────────────────────────
 
 const uploadInput = document.getElementById("upload-input") as HTMLInputElement;
-const uploadArea = document.getElementById("upload-area") as HTMLDivElement;
-const thumbnailStrip = document.getElementById("thumbnail-strip") as HTMLDivElement;
-const frameCount = document.getElementById("frame-count") as HTMLSpanElement;
+const fileName = document.getElementById("file-name") as HTMLSpanElement;
+const btnGo = document.getElementById("btn-go") as HTMLButtonElement;
+const btnAdvancedToggle = document.getElementById("btn-advanced-toggle") as HTMLButtonElement;
+const advancedPanel = document.getElementById("advanced-panel") as HTMLDivElement;
 const controlsForm = document.getElementById("controls") as HTMLFormElement;
-const btnRender = document.getElementById("btn-render") as HTMLButtonElement;
 const btnDownloadPdf = document.getElementById("btn-download-pdf") as HTMLButtonElement;
 const btnDownloadPng = document.getElementById("btn-download-png") as HTMLButtonElement;
 const renderProgress = document.getElementById("render-progress") as HTMLProgressElement;
@@ -50,77 +50,56 @@ document.querySelectorAll<HTMLButtonElement>(".tab-btn").forEach((btn) => {
   });
 });
 
+// ── Advanced settings toggle ───────────────────────────────────────────────
+
+btnAdvancedToggle.addEventListener("click", () => {
+  advancedPanel.hidden = !advancedPanel.hidden;
+  btnAdvancedToggle.textContent = advancedPanel.hidden ? "Advanced ▾" : "Advanced ▴";
+});
+
 // ── Upload handling ────────────────────────────────────────────────────────
 
-uploadInput.addEventListener("change", handleUpload);
-
-uploadArea.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  uploadArea.classList.add("drag-over");
-});
-uploadArea.addEventListener("dragleave", () => uploadArea.classList.remove("drag-over"));
-uploadArea.addEventListener("drop", (e) => {
-  e.preventDefault();
-  uploadArea.classList.remove("drag-over");
-  if (e.dataTransfer?.files) handleFileList(e.dataTransfer.files);
-});
-
-async function handleUpload() {
-  if (uploadInput.files) handleFileList(uploadInput.files);
-}
-
-async function handleFileList(files: FileList) {
-  btnRender.disabled = true;
-  btnDownloadPdf.disabled = true;
-  btnDownloadPng.disabled = true;
-  frameCount.textContent = "Loading…";
-
-  uploadedFrames = await loadFiles(files);
-  frameCount.textContent = `${uploadedFrames.length} frame${uploadedFrames.length !== 1 ? "s" : ""}`;
-  renderThumbnails();
-  btnRender.disabled = uploadedFrames.length === 0;
+uploadInput.addEventListener("change", () => {
+  const file = uploadInput.files?.[0];
+  if (file) {
+    fileName.textContent = file.name;
+    btnGo.disabled = false;
+  } else {
+    fileName.textContent = "No file selected";
+    btnGo.disabled = true;
+  }
   renderedPages = [];
   currentSheetIndex = 0;
   clearPreview();
-}
+});
 
-function renderThumbnails() {
-  thumbnailStrip.innerHTML = "";
-  const max = Math.min(uploadedFrames.length, 12);
-  for (let i = 0; i < max; i++) {
-    const c = document.createElement("canvas");
-    c.width = 48;
-    c.height = 48;
-    c.getContext("2d")!.drawImage(uploadedFrames[i].bitmap, 0, 0, 48, 48);
-    c.title = uploadedFrames[i].name;
-    thumbnailStrip.appendChild(c);
-  }
-  if (uploadedFrames.length > max) {
-    const more = document.createElement("span");
-    more.className = "more-badge";
-    more.textContent = `+${uploadedFrames.length - max}`;
-    thumbnailStrip.appendChild(more);
-  }
-}
+// ── Go button ──────────────────────────────────────────────────────────────
 
-// ── Render ─────────────────────────────────────────────────────────────────
+btnGo.addEventListener("click", async () => {
+  const file = uploadInput.files?.[0];
+  if (!file) return;
 
-btnRender.addEventListener("click", async () => {
-  if (uploadedFrames.length === 0) return;
-
-  btnRender.disabled = true;
+  btnGo.disabled = true;
   btnDownloadPdf.disabled = true;
   btnDownloadPng.disabled = true;
   renderProgress.hidden = false;
   renderProgress.value = 0;
 
   const config = readLayoutConfig(controlsForm);
+  const pages = Math.max(1, parseInt((controlsForm.querySelector('[name="pages"]') as HTMLInputElement)?.value || "3") || 3);
+  const totalFrames = pages * config.cols * config.rows;
 
+  // Phase 1: extract frames (0–50%)
+  uploadedFrames = await loadVideo(file, totalFrames, (current, total) => {
+    renderProgress.value = Math.round((current / total) * 50);
+  });
+
+  // Phase 2: render sheets (50–100%)
   renderedPages = await renderSheets(
     uploadedFrames.map((f) => f.bitmap),
     config,
     (current, total) => {
-      renderProgress.value = Math.round((current / total) * 100);
+      renderProgress.value = 50 + Math.round((current / total) * 50);
     },
   );
 
@@ -128,7 +107,7 @@ btnRender.addEventListener("click", async () => {
   currentSheetIndex = 0;
   showSheet(0);
 
-  btnRender.disabled = false;
+  btnGo.disabled = false;
   btnDownloadPdf.disabled = false;
   btnDownloadPng.disabled = false;
 });
@@ -176,23 +155,6 @@ btnDownloadPng.addEventListener("click", async () => {
   btnDownloadPng.disabled = false;
 });
 
-// ── Live preview debounce ──────────────────────────────────────────────────
-
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-controlsForm.addEventListener("change", () => {
-  if (renderedPages.length === 0 || uploadedFrames.length === 0) return;
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(async () => {
-    const config = readLayoutConfig(controlsForm);
-    const preview = await renderSheets(
-      uploadedFrames.map((f) => f.bitmap),
-      config,
-    );
-    renderedPages = preview;
-    showSheet(currentSheetIndex);
-  }, 300);
-});
 
 // ── Tarot tab ──────────────────────────────────────────────────────────────
 
