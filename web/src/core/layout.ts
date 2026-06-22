@@ -66,7 +66,7 @@ function makeCanvas(w: number, h: number): HTMLCanvasElement {
   return c;
 }
 
-async function fillBackground(
+export async function fillBackground(
   ctx: CanvasRenderingContext2D,
   bg: string,
   w: number,
@@ -88,7 +88,7 @@ async function fillBackground(
   }
 }
 
-async function renderCell(
+export async function renderCell(
   frame: ImageBitmap,
   frameIndex: number,
   config: LayoutConfig,
@@ -147,7 +147,7 @@ async function renderCell(
   return canvas;
 }
 
-function drawCutMarks(
+export function drawCutMarks(
   ctx: CanvasRenderingContext2D,
   config: LayoutConfig,
   dims: LayoutDimensions,
@@ -174,7 +174,7 @@ function drawCutMarks(
   }
 }
 
-function drawCellOutlines(
+export function drawCellOutlines(
   ctx: CanvasRenderingContext2D,
   config: LayoutConfig,
   dims: LayoutDimensions,
