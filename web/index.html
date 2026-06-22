@@ -328,6 +328,191 @@
         display: flex;
         gap: 0.5rem;
       }
+
+      /* ── Multi-Chapter tab ── */
+      #tab-multi {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 52px);
+      }
+
+      #multi-upload-bar {
+        border-bottom: 1px solid var(--border);
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        background: var(--surface);
+      }
+
+      #multi-chapter-list {
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        padding: 0.5rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        max-height: 220px;
+        overflow-y: auto;
+      }
+
+      #multi-chapter-list:empty {
+        padding: 0.75rem 1.5rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+      #multi-chapter-list:empty::after {
+        content: "No chapters added yet. Click \"+ Chapter\" to add videos.";
+      }
+
+      .chapter-item {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.35rem 0.5rem;
+        border-radius: var(--radius);
+        background: var(--surface2);
+        font-size: 0.85rem;
+      }
+
+      .chapter-remove-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 0.9rem;
+        padding: 0 0.2rem;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+      .chapter-remove-btn:hover { color: #e06c6c; }
+
+      .chapter-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 500;
+      }
+
+      .chapter-duration {
+        color: var(--text-muted);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .chapter-fps-label {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .chapter-fps-input {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: var(--radius);
+        padding: 0.2rem 0.4rem;
+        font-size: 0.83rem;
+        width: 56px;
+      }
+      .chapter-fps-input:focus { outline: none; border-color: var(--accent); }
+      .chapter-fps-input:disabled { opacity: 0.45; }
+
+      .chapter-frames {
+        color: var(--accent);
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: 0.82rem;
+        min-width: 140px;
+        text-align: right;
+      }
+
+      #multi-balance-bar {
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        padding: 0.5rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      #multi-balance-bar label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+      }
+
+      #multi-balance-target {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: var(--radius);
+        padding: 0.2rem 0.5rem;
+        font-size: 0.83rem;
+        width: 72px;
+      }
+      #multi-balance-target:focus { outline: none; border-color: var(--accent); }
+
+      #multi-balance-info {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        flex: 1;
+      }
+
+      #multi-advanced-panel {
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        padding: 1rem 1.5rem;
+        overflow-y: auto;
+        max-height: 50vh;
+      }
+
+      #multi-advanced-panel form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      #multi-advanced-panel fieldset {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin: 0;
+        padding: 0.6rem 0.8rem 0.75rem;
+        min-width: 180px;
+      }
+      #multi-advanced-panel legend {
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding: 0 0.3rem;
+      }
+
+      #multi-preview-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      #multi-preview-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
     </style>
   </head>
   <body>
@@ -335,6 +520,7 @@
       <h1>flipbook-maker</h1>
       <nav>
         <button class="tab-btn active" data-tab="flipbook">Flipbook</button>
+        <button class="tab-btn" data-tab="multi">Multi-Chapter</button>
         <button class="tab-btn" data-tab="tarot">Tarot</button>
         <button class="tab-btn" data-tab="cootie">Cootie Catcher</button>
       </nav>
@@ -468,6 +654,145 @@
           </div>
           <div id="preview-scroll">
             <canvas id="preview-canvas"></canvas>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ══ MULTI-CHAPTER TAB ════════════════════════════════════════════ -->
+      <section id="tab-multi" class="tab-section" hidden>
+
+        <!-- upload bar -->
+        <div id="multi-upload-bar">
+          <input id="multi-file-input" type="file" accept="video/*" hidden />
+          <button type="button" id="btn-add-chapter" class="action-btn">+ Chapter</button>
+          <button type="button" id="btn-multi-advanced-toggle" class="action-btn">Advanced ▾</button>
+          <div style="margin-left:auto;display:flex;gap:0.5rem;align-items:center;">
+            <progress id="multi-progress" value="0" max="100" hidden style="width:120px;height:6px;"></progress>
+            <button type="button" id="btn-multi-go" class="action-btn primary" disabled>Go</button>
+            <button type="button" id="btn-multi-pdf" class="action-btn" disabled>PDF</button>
+            <button type="button" id="btn-multi-png" class="action-btn" disabled>PNGs (ZIP)</button>
+          </div>
+        </div>
+
+        <!-- chapter list -->
+        <div id="multi-chapter-list"></div>
+
+        <!-- balance bar -->
+        <div id="multi-balance-bar">
+          <label>
+            <input type="checkbox" id="multi-balance" />
+            Balance frame counts
+          </label>
+          <span id="multi-balance-target-wrap" hidden>
+            Target:
+            <input id="multi-balance-target" type="number" min="1" max="9999" placeholder="auto" />
+            frames
+          </span>
+          <span id="multi-balance-info"></span>
+        </div>
+
+        <!-- advanced settings -->
+        <div id="multi-advanced-panel" hidden>
+          <form id="multi-controls" autocomplete="off">
+            <fieldset>
+              <legend>Page</legend>
+              <div class="field-row">
+                <label for="m-paper">Paper</label>
+                <select id="m-paper" name="paper">
+                  <option value="a4" selected>A4</option>
+                  <option value="a3">A3</option>
+                  <option value="letter">Letter</option>
+                  <option value="legal">Legal</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <label>Orientation</label>
+                <div class="radio-group">
+                  <label><input type="radio" name="orientation" value="portrait" checked /> Portrait</label>
+                  <label><input type="radio" name="orientation" value="landscape" /> Landscape</label>
+                </div>
+              </div>
+              <div class="field-row">
+                <label for="m-dpi">DPI</label>
+                <input id="m-dpi" type="number" name="dpi" value="150" min="72" max="600" />
+              </div>
+              <div class="field-row">
+                <label for="m-margin">Margin (mm)</label>
+                <input id="m-margin" type="number" name="marginMm" value="5" min="0" max="50" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="m-bg">Background</label>
+                <input id="m-bg" type="text" name="background" value="white" />
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Grid</legend>
+              <div class="field-row">
+                <label for="m-cols">Columns</label>
+                <input id="m-cols" type="number" name="cols" value="1" min="1" max="10" />
+              </div>
+              <p style="margin:0.4rem 0 0;font-size:0.78rem;color:var(--text-muted);">
+                Rows = number of chapters (auto)
+              </p>
+            </fieldset>
+
+            <fieldset>
+              <legend>Frame scaling</legend>
+              <div class="field-row">
+                <label for="m-fit">Fit mode</label>
+                <select id="m-fit" name="fit">
+                  <option value="contain" selected>Contain</option>
+                  <option value="cover">Cover</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Decoration</legend>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="m-cutMarks" name="cutMarks" checked />
+                <label for="m-cutMarks">Cut marks</label>
+              </div>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="m-cellOutline" name="cellOutline" />
+                <label for="m-cellOutline">Cell outlines</label>
+              </div>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="m-frameNumbers" name="frameNumbers" />
+                <label for="m-frameNumbers">Frame numbers</label>
+              </div>
+              <div class="field-row">
+                <label for="m-frameNumberColor">Number colour</label>
+                <input id="m-frameNumberColor" type="text" name="frameNumberColor" value="black" />
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Bind strip</legend>
+              <div class="field-row">
+                <label for="m-bindStripMm">Width (mm)</label>
+                <input id="m-bindStripMm" type="number" name="bindStripMm" value="0" min="0" max="30" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="m-bindStripColor">Colour</label>
+                <input id="m-bindStripColor" type="text" name="bindStripColor" placeholder="none" />
+              </div>
+            </fieldset>
+          </form>
+        </div>
+
+        <!-- preview -->
+        <div id="multi-preview-area">
+          <div id="multi-preview-toolbar">
+            <button id="btn-multi-prev" class="action-btn" disabled>‹</button>
+            <span id="multi-sheet-counter">Sheet — / —</span>
+            <button id="btn-multi-next" class="action-btn" disabled>›</button>
+          </div>
+          <div id="preview-scroll" style="flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:1.5rem;">
+            <canvas id="multi-preview-canvas" style="max-width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.5);border-radius:2px;"></canvas>
           </div>
         </div>
 
