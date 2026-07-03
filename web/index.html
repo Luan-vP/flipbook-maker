@@ -583,6 +583,13 @@
             <fieldset>
               <legend>Grid</legend>
               <div class="field-row">
+                <label for="frameSize">Frame size</label>
+                <select id="frameSize" name="frameSize">
+                  <option value="" selected>Custom grid (cols × rows)</option>
+                  <option value="filter-tip">Filter tip — 44 × 68mm (auto-fit A4)</option>
+                </select>
+              </div>
+              <div class="field-row">
                 <label for="cols">Columns</label>
                 <input id="cols" type="number" name="cols" value="2" min="1" max="10" />
               </div>
@@ -594,6 +601,9 @@
                 <label for="pages">Pages</label>
                 <input id="pages" type="number" name="pages" value="3" min="1" max="20" />
               </div>
+              <p style="margin:0.4rem 0 0;font-size:0.78rem;color:var(--text-muted);">
+                Frame size presets set Paper to A4 portrait and auto-fill Columns/Rows below — adjust them after if needed.
+              </p>
             </fieldset>
 
             <fieldset>
@@ -730,11 +740,18 @@
             <fieldset>
               <legend>Grid</legend>
               <div class="field-row">
+                <label for="m-frameSize">Frame size</label>
+                <select id="m-frameSize" name="frameSize">
+                  <option value="" selected>Custom grid (cols × rows)</option>
+                  <option value="filter-tip">Filter tip — 44 × 68mm (auto-fit A4)</option>
+                </select>
+              </div>
+              <div class="field-row">
                 <label for="m-cols">Columns</label>
                 <input id="m-cols" type="number" name="cols" value="1" min="1" max="10" />
               </div>
               <p style="margin:0.4rem 0 0;font-size:0.78rem;color:var(--text-muted);">
-                Rows = number of chapters (auto)
+                Rows = number of chapters (auto). Frame size presets set Paper to A4 portrait and auto-fill Columns.
               </p>
             </fieldset>
 

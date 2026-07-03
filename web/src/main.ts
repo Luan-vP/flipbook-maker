@@ -15,7 +15,7 @@ import {
   downloadCooticePdf,
   DEFAULT_COOTIE_CONFIG,
 } from "./cootie/template";
-import { PAPER_SIZES_MM } from "./core/paper";
+import { PAPER_SIZES_MM, FRAME_SIZE_PRESETS_MM, gridForFrameSize } from "./core/paper";
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -50,6 +50,31 @@ document.querySelectorAll<HTMLButtonElement>(".tab-btn").forEach((btn) => {
     document.getElementById(`tab-${target}`)!.hidden = false;
   });
 });
+
+// ── Frame size presets (e.g. filter-tip) ───────────────────────────────────
+
+function wireFrameSizePreset(form: HTMLFormElement) {
+  const select = form.querySelector<HTMLSelectElement>('[name="frameSize"]');
+  if (!select) return;
+  select.addEventListener("change", () => {
+    const frameSizeMm = FRAME_SIZE_PRESETS_MM[select.value];
+    if (!frameSizeMm) return;
+
+    const paperSelect = form.querySelector<HTMLSelectElement>('[name="paper"]');
+    if (paperSelect) paperSelect.value = "a4";
+    const portraitRadio = form.querySelector<HTMLInputElement>('[name="orientation"][value="portrait"]');
+    if (portraitRadio) portraitRadio.checked = true;
+
+    const marginInput = form.querySelector<HTMLInputElement>('[name="marginMm"]');
+    const marginMm = marginInput ? parseFloat(marginInput.value) || 0 : 5;
+
+    const [cols, rows] = gridForFrameSize(PAPER_SIZES_MM["a4"], marginMm, frameSizeMm);
+    const colsInput = form.querySelector<HTMLInputElement>('[name="cols"]');
+    if (colsInput) colsInput.value = String(cols);
+    const rowsInput = form.querySelector<HTMLInputElement>('[name="rows"]');
+    if (rowsInput) rowsInput.value = String(rows);
+  });
+}
 
 // ── Advanced settings toggle ───────────────────────────────────────────────
 
@@ -300,6 +325,9 @@ const btnMultiNext = document.getElementById("btn-multi-next") as HTMLButtonElem
 const btnMultiAdvancedToggle = document.getElementById("btn-multi-advanced-toggle") as HTMLButtonElement;
 const multiAdvancedPanel = document.getElementById("multi-advanced-panel") as HTMLDivElement;
 const multiControlsForm = document.getElementById("multi-controls") as HTMLFormElement;
+
+wireFrameSizePreset(controlsForm);
+wireFrameSizePreset(multiControlsForm);
 
 btnMultiAdvancedToggle.addEventListener("click", () => {
   multiAdvancedPanel.hidden = !multiAdvancedPanel.hidden;

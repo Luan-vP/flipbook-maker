@@ -1,5 +1,5 @@
 import { LayoutConfig, DEFAULT_CONFIG } from "../core/layout";
-import { PAPER_SIZES_MM } from "../core/paper";
+import { PAPER_SIZES_MM, FRAME_SIZE_PRESETS_MM, gridForFrameSize } from "../core/paper";
 
 export function readLayoutConfig(form: HTMLFormElement): LayoutConfig {
   const data = new FormData(form);
@@ -24,9 +24,19 @@ export function readLayoutConfig(form: HTMLFormElement): LayoutConfig {
 
   const bindColor = str("bindStripColor", "");
 
+  let cols = Math.max(1, Math.round(num("cols", DEFAULT_CONFIG.cols)));
+  let rows = Math.max(1, Math.round(num("rows", DEFAULT_CONFIG.rows)));
+
+  const frameSizePreset = str("frameSize", "");
+  const marginMmForGrid = Math.max(0, num("marginMm", DEFAULT_CONFIG.marginMm));
+  const frameSizeMm = FRAME_SIZE_PRESETS_MM[frameSizePreset];
+  if (frameSizeMm) {
+    [cols, rows] = gridForFrameSize(pageSizeMm, marginMmForGrid, frameSizeMm);
+  }
+
   return {
-    cols: Math.max(1, Math.round(num("cols", DEFAULT_CONFIG.cols))),
-    rows: Math.max(1, Math.round(num("rows", DEFAULT_CONFIG.rows))),
+    cols,
+    rows,
     dpi: Math.max(72, Math.round(num("dpi", DEFAULT_CONFIG.dpi))),
     marginMm: Math.max(0, num("marginMm", DEFAULT_CONFIG.marginMm)),
     background: str("background", DEFAULT_CONFIG.background),

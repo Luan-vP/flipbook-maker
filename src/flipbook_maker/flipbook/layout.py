@@ -10,6 +10,7 @@ from flipbook_maker.core.paper import A4_MM
 from flipbook_maker.core.units import mm_to_px
 
 FitMode = Literal["contain", "cover", "stretch"]
+FillOrder = Literal["row", "column"]
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,7 @@ class LayoutConfig:
     cut_marks: bool = False
     cell_outline: bool = False
     fit: FitMode = "contain"
+    fill: FillOrder = "row"
     frame_numbers: bool = False
     frame_number_color: str = "black"
     frame_number_offset_mm: float = 2.0
@@ -137,7 +139,10 @@ def render_sheets(frames: list[Path], config: LayoutConfig) -> list[Image.Image]
         batch = frames[start : start + per_page]
         page = _load_background(config.background, page_size)
         for i, frame_path in enumerate(batch):
-            row, col = divmod(i, config.cols)
+            if config.fill == "column":
+                col, row = divmod(i, config.rows)
+            else:
+                row, col = divmod(i, config.cols)
             cell = Image.new("RGBA", (cell_w, cell_h), (0, 0, 0, 0))
             if bind_strip_px > 0 and config.bind_strip_color is not None:
                 strip_rgb = ImageColor.getrgb(config.bind_strip_color)
