@@ -35,3 +35,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./web/dist
           force_orphan: true
+          # Persist the custom domain on each deploy (force_orphan would
+          # otherwise wipe the CNAME file written by GitHub Pages settings).
+          cname: flipbook.luanvp.info
