@@ -453,7 +453,9 @@ This section describes a TypeScript/browser implementation that achieves complet
 ### 13.1 Goals
 
 - Static HTML + JS bundle; no backend.
-- Accepts PNG frame uploads (multiple files or a ZIP archive).
+- Accepts image frame uploads (multiple files or a ZIP archive; PNG, JPEG,
+  WebP, GIF, BMP, AVIF).
+- Registers hand-shot photo sequences against a square frame before layout.
 - Renders flipbooks in the browser using Canvas 2D.
 - Outputs a downloadable PDF (multi-page) or PNG sequence (zipped).
 - Exposes the same configuration surface as the CLI.
@@ -493,6 +495,9 @@ web/
       render.ts            ← renderTarotZine / renderTarotGrid
     cootie/
       template.ts          ← renderCooticeCatcher
+    photos/
+      align.ts             ← FrameTransform, drawSquare, bakeSquares (pure)
+      tab.ts               ← Photos tab: ordering, square aligner, playback
   public/
     favicon.ico
   vite.config.ts

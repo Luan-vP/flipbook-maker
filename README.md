@@ -126,3 +126,52 @@ the full cell width the number may be overdrawn by the frame image. Prefer
 The page is divided into `cols × rows` cells. Within each cell the frame is
 scaled to fit (preserving aspect ratio) and pasted against the right wall,
 vertically centred. Cut along the cell boundaries and bind the left edges.
+
+## Web UI — Photos tab
+
+The browser app (`web/`, deployed at flipbook.luanvp.info) has a **Photos** tab
+for building a flipbook from a set of stills rather than a video.
+
+```bash
+cd web
+npm install
+npm run dev      # http://localhost:5173
+```
+
+**Load and order.** Drop in any number of images (PNG, JPEG, WebP, GIF, BMP,
+AVIF) or a single ZIP of them. Files are sorted naturally, so `img2` lands
+before `img10`. If your filenames run backwards relative to the animation, tick
+**Reverse order**. Drag thumbnails in the filmstrip to reorder by hand.
+
+**Align.** Photos shot by hand never register with each other, so each frame
+carries its own position inside a fixed square window:
+
+| Control | Action |
+|---|---|
+| Drag in the square | Pan |
+| Scroll wheel | Zoom |
+| <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> | Nudge (hold <kbd>Shift</kbd> for coarse) |
+| <kbd>[</kbd> <kbd>]</kbd> | Rotate |
+| <kbd>n</kbd> / <kbd>p</kbd> | Step frames |
+
+Zoom is relative to a **contain** baseline: 100% shows the whole photo inside
+the square, above that crops in.
+
+The **Onion** overlay is what makes registration possible — it draws a
+neighbouring frame on top of the current one. `Previous frame` / `Next frame` /
+`Both neighbours` blend at the chosen opacity; **Difference vs previous** uses a
+difference blend, so anything correctly registered goes black and anything out
+of place stays coloured. That is usually the fastest way to line two frames up.
+
+`Copy → next` pushes the current transform onto the following frame and steps
+to it — the quickest way to walk a sequence. `Apply to all` pushes it to every
+frame.
+
+**Play.** The viewer flips the aligned squares at 1–60 fps, looping,
+ping-ponging, or once through. Scrubbing selects that frame in the aligner, so
+when a frame stutters you can drop straight into fixing it.
+
+**Print.** `Build sheets` bakes the aligned squares and runs them through the
+same layout as the CLI — right-wall aligned, left strip for binding — then
+`PDF` or `PNGs (ZIP)` downloads them. Frame count sets the sheet count; the
+default 2 × 8 grid fits 16 frames per A4 sheet.
