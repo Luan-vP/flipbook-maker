@@ -193,6 +193,27 @@ returns every frame to its starting position.
 ping-ponging, or once through. Scrubbing selects that frame in the aligner, so
 when a frame stutters you can drop straight into fixing it.
 
+**Rolling paper strips.** Tick **Size cells to paper strips** to lay the
+flipbook out on roach-card-sized cells instead of the cols/rows grid. One
+dimension is fixed by the paper (**Strip width**, default 16mm); the **Length**
+is nominal and allowed to flex by **Flex ±**, because letting it vary is what
+lets the cells divide A4 without waste. The solver picks the length in that
+range giving the most whole copies, then the least waste, then the closest fit
+to your nominal.
+
+With 14 frames, 16mm strips and a 42 ±6mm length it settles on **40 × 16mm —
+5 × 17 = 85 cells, 6 complete flipbooks per A4 sheet**, leaving a 24mm blank
+strip to the left of each 16mm square image. That strip is the roll/bind edge
+the layout is already built around, so `Length runs: Across` is the useful
+default; `Down the sheet` puts the long axis vertical instead.
+
+**Duplicate to fill sheet** repeats the whole sequence for as many complete
+copies as the grid holds — in strip mode or on a plain grid. Untick it to set
+**Copies** by hand. Printed frame numbers restart at 1 for every copy, so each
+pile you cut reads 1..N rather than running on to 84. The readout under the
+fieldset always states the resulting cell size, grid, copies and sheet count
+before you commit to a build.
+
 **Print.** `Build sheets` bakes the aligned squares and runs them through the
 same layout as the CLI — right-wall aligned, left strip for binding — then
 `PDF` or `PNGs (ZIP)` downloads them. Frame count sets the sheet count; the

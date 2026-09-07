@@ -526,6 +526,15 @@
         overflow: hidden;
       }
 
+      #photos-strip-readout {
+        margin: 0.5rem 0 0;
+        font-size: 0.76rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+        max-width: 210px;
+      }
+      #photos-strip-readout.active { color: var(--accent); }
+
       #photos-status {
         font-size: 0.78rem;
         color: var(--text-muted);
@@ -999,6 +1008,42 @@
               <p style="margin:0.4rem 0 0;font-size:0.78rem;color:var(--text-muted);max-width:200px;">
                 Sheet count follows from how many photos you load — 2 × 8 fits 16 per A4 sheet.
               </p>
+            </fieldset>
+
+            <fieldset id="photos-strip-fieldset">
+              <legend>Rolling paper</legend>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="photos-strip-mode" name="stripMode" />
+                <label for="photos-strip-mode">Size cells to paper strips</label>
+              </div>
+              <div class="field-row">
+                <label for="photos-strip-width">Strip width (mm)</label>
+                <input id="photos-strip-width" type="number" name="stripWidthMm" value="16" min="4" max="100" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="photos-strip-length">Length (mm)</label>
+                <input id="photos-strip-length" type="number" name="stripLengthMm" value="42" min="10" max="200" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="photos-strip-tolerance">Flex ± (mm)</label>
+                <input id="photos-strip-tolerance" type="number" name="stripToleranceMm" value="6" min="0" max="40" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="photos-strip-orientation">Length runs</label>
+                <select id="photos-strip-orientation" name="stripOrientation">
+                  <option value="horizontal" selected>Across (roll strip left)</option>
+                  <option value="vertical">Down the sheet</option>
+                </select>
+              </div>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="photos-fill-sheet" name="fillSheet" checked />
+                <label for="photos-fill-sheet">Duplicate to fill sheet</label>
+              </div>
+              <div class="field-row">
+                <label for="photos-copies">Copies</label>
+                <input id="photos-copies" type="number" name="copies" value="1" min="1" max="99" disabled />
+              </div>
+              <p id="photos-strip-readout">Off — using the Grid settings.</p>
             </fieldset>
 
             <fieldset>

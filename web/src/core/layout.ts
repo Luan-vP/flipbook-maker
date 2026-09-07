@@ -17,6 +17,12 @@ export interface LayoutConfig {
   frameNumberOffsetMm: number;
   bindStripMm: number;
   bindStripColor: string | null;
+  /**
+   * Restart printed frame numbers every N frames. When a sheet carries several
+   * copies of the same sequence, each copy should number 1..N rather than
+   * running on. Null keeps a single run across the whole job.
+   */
+  frameNumberModulo: number | null;
 }
 
 export const DEFAULT_CONFIG: LayoutConfig = {
@@ -34,6 +40,7 @@ export const DEFAULT_CONFIG: LayoutConfig = {
   frameNumberOffsetMm: 2,
   bindStripMm: 0,
   bindStripColor: null,
+  frameNumberModulo: null,
 };
 
 export interface LayoutDimensions {
@@ -137,7 +144,8 @@ export async function renderCell(
     const fontSize = Math.max(8, Math.round(ch * 0.06));
     ctx.font = `${fontSize}px sans-serif`;
     ctx.fillStyle = config.frameNumberColor;
-    const text = String(frameIndex + 1);
+    const modulo = config.frameNumberModulo;
+    const text = String(modulo && modulo > 0 ? (frameIndex % modulo) + 1 : frameIndex + 1);
     const metrics = ctx.measureText(text);
     const textH =
       metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;

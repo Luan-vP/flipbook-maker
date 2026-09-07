@@ -17,7 +17,8 @@
 
 import { loadFiles } from "../ui/upload";
 import { readLayoutConfig } from "../ui/controls";
-import { renderSheets, computeDimensions } from "../core/layout";
+import { renderSheets, computeDimensions, LayoutConfig } from "../core/layout";
+import { solveStripCell, StripPacking } from "../core/paper";
 import { savePdf, savePages } from "../core/io";
 import {
   PhotoFrame,
@@ -53,6 +54,15 @@ export function initPhotosTab(): void {
   const btnAdvanced = $<HTMLButtonElement>("btn-photos-advanced-toggle");
   const advancedPanel = $<HTMLDivElement>("photos-advanced-panel");
   const controlsForm = $<HTMLFormElement>("photos-controls");
+
+  const stripMode = $<HTMLInputElement>("photos-strip-mode");
+  const stripWidth = $<HTMLInputElement>("photos-strip-width");
+  const stripLength = $<HTMLInputElement>("photos-strip-length");
+  const stripTolerance = $<HTMLInputElement>("photos-strip-tolerance");
+  const stripOrientation = $<HTMLSelectElement>("photos-strip-orientation");
+  const fillSheet = $<HTMLInputElement>("photos-fill-sheet");
+  const copiesInput = $<HTMLInputElement>("photos-copies");
+  const stripReadout = $<HTMLParagraphElement>("photos-strip-readout");
 
   const btnBuild = $<HTMLButtonElement>("btn-photos-build");
   const progress = $<HTMLProgressElement>("photos-progress");
@@ -665,6 +675,97 @@ export function initPhotosTab(): void {
     btnAdvanced.textContent = advancedPanel.hidden ? "Advanced ▾" : "Advanced ▴";
   });
 
+  // ── Rolling-paper strips ─────────────────────────────────────────────────
+
+  /**
+   * Resolve the grid and copy count for a build. In strip mode the cell size
+   * comes from the paper rather than from cols/rows, and the sequence repeats
+   * to fill whatever that grid leaves room for.
+   */
+  function resolveBuild(config: LayoutConfig): {
+    config: LayoutConfig;
+    copies: number;
+    packing: StripPacking | null;
+  } {
+    if (!stripMode.checked || frames.length === 0) {
+      // "Fill sheet" means the same thing here as in strip mode: repeat the
+      // sequence for as many whole copies as the grid holds.
+      const cells = config.cols * config.rows;
+      const copies =
+        fillSheet.checked && frames.length > 0
+          ? Math.max(1, Math.floor(cells / frames.length))
+          : Math.max(1, parseInt(copiesInput.value) || 1);
+      return { config, copies, packing: null };
+    }
+
+    const packing = solveStripCell(
+      config.pageSizeMm,
+      config.marginMm,
+      Math.max(1, parseFloat(stripWidth.value) || 16),
+      Math.max(1, parseFloat(stripLength.value) || 42),
+      Math.max(0, parseFloat(stripTolerance.value) || 0),
+      frames.length,
+      stripOrientation.value === "horizontal",
+    );
+    if (!packing) return { config, copies: 1, packing: null };
+
+    const copies = fillSheet.checked
+      ? Math.max(1, packing.copies)
+      : Math.max(1, parseInt(copiesInput.value) || 1);
+
+    return {
+      config: { ...config, cols: packing.cols, rows: packing.rows },
+      copies,
+      packing,
+    };
+  }
+
+  function updateStripReadout(): void {
+    copiesInput.disabled = fillSheet.checked;
+    const on = stripMode.checked;
+    stripReadout.classList.toggle("active", on);
+
+    if (frames.length === 0) {
+      stripReadout.textContent = on
+        ? "Load photos to size the grid."
+        : "Using the Grid settings.";
+      return;
+    }
+
+    const base = readLayoutConfig(controlsForm);
+    const { packing, copies } = resolveBuild(base);
+
+    if (!on) {
+      const cells = base.cols * base.rows;
+      const sheets = Math.ceil((copies * frames.length) / cells);
+      stripReadout.textContent =
+        `Grid ${base.cols} × ${base.rows} = ${cells} cells. ` +
+        `${copies} cop${copies === 1 ? "y" : "ies"} of ${frames.length} on ${sheets} sheet${sheets === 1 ? "" : "s"}.`;
+      return;
+    }
+
+    if (!packing) {
+      stripReadout.textContent =
+        "No length in that range divides the sheet — widen the flex, or shorten the strip.";
+      return;
+    }
+
+    const [w, h] = packing.cellMm;
+    const square = Math.min(w, h);
+    const sheets = Math.ceil((copies * frames.length) / packing.cells);
+    stripReadout.textContent =
+      `${w.toFixed(1)} × ${h.toFixed(1)}mm — ${packing.cols} × ${packing.rows} = ${packing.cells} cells. ` +
+      `${copies} cop${copies === 1 ? "y" : "ies"} of ${frames.length} on ${sheets} sheet${sheets === 1 ? "" : "s"}` +
+      `${fillSheet.checked ? `, ${packing.spare} cell${packing.spare === 1 ? "" : "s"} spare` : ""}. ` +
+      `Image ${square.toFixed(1)}mm square, ${(Math.max(w, h) - square).toFixed(1)}mm roll strip.`;
+  }
+
+  for (const el of [stripMode, stripWidth, stripLength, stripTolerance, stripOrientation, fillSheet, copiesInput]) {
+    el.addEventListener("input", updateStripReadout);
+    el.addEventListener("change", updateStripReadout);
+  }
+  controlsForm.addEventListener("change", updateStripReadout);
+
   /** Solid colours can back the square; texture URLs are left to the sheet. */
   function squareBackground(background: string): string | undefined {
     return /^(data:|blob:|https?:)/.test(background) ? undefined : background;
@@ -680,20 +781,30 @@ export function initPhotosTab(): void {
     progress.hidden = false;
     progress.value = 0;
 
-    const config = readLayoutConfig(controlsForm);
-    const dims = computeDimensions(config);
+    const { config, copies } = resolveBuild(readLayoutConfig(controlsForm));
+    // Each copy restarts at 1, so every cut stack reads 1..N.
+    const buildConfig: LayoutConfig = {
+      ...config,
+      frameNumberModulo: copies > 1 ? frames.length : null,
+    };
+
+    const dims = computeDimensions(buildConfig);
     // Bake at 2x the size the cell will draw, so `contain` downsamples rather
     // than upscales.
     const side = Math.max(64, Math.round(Math.min(dims.usableW, dims.cellPx[1]) * 2));
 
-    const bitmaps = await bakeSquares(
+    const baked = await bakeSquares(
       frames,
       side,
-      squareBackground(config.background),
+      squareBackground(buildConfig.background),
       (cur, tot) => (progress.value = Math.round((cur / tot) * 50)),
     );
 
-    sheets = await renderSheets(bitmaps, config, (cur, tot) => {
+    // Repeat the sequence; the same bitmaps are reused, not re-baked.
+    const bitmaps: ImageBitmap[] = [];
+    for (let c = 0; c < copies; c++) bitmaps.push(...baked);
+
+    sheets = await renderSheets(bitmaps, buildConfig, (cur, tot) => {
       progress.value = 50 + Math.round((cur / tot) * 50);
     });
 
@@ -729,7 +840,7 @@ export function initPhotosTab(): void {
 
   btnPdf.addEventListener("click", async () => {
     if (sheets.length === 0) return;
-    const config = readLayoutConfig(controlsForm);
+    const { config } = resolveBuild(readLayoutConfig(controlsForm));
     btnPdf.disabled = true;
     await savePdf(sheets, "flipbook.pdf", config.pageSizeMm);
     btnPdf.disabled = false;
@@ -760,6 +871,7 @@ export function initPhotosTab(): void {
     rebuildStrip();
     refreshSelection();
     renderPlayback();
+    updateStripReadout();
   }
 
   onFramesChanged();
