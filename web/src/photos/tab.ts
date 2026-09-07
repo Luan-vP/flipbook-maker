@@ -8,6 +8,11 @@
  *   3. play          — flip the aligned squares at a chosen fps
  * Print reuses the existing sheet layout: the squares are baked and handed to
  * `renderSheets` unchanged, so the right-wall bind edge still holds.
+ *
+ * Aligning a sequence by hand is slow work, so two things protect it: a set can
+ * be preloaded from `public/preload/<name>/manifest.json` via `?preload=<name>`
+ * (skipping the file picker on every reload), and transforms are autosaved to
+ * localStorage keyed by filename, so a refresh does not throw the work away.
  */
 
 import { loadFiles } from "../ui/upload";
@@ -27,6 +32,7 @@ const PLAY_SIDE = 260;
 const THUMB_SIDE = 54;
 const MIN_SCALE = 0.15;
 const MAX_SCALE = 8;
+const STORAGE_KEY = "flipbook-maker.photos.transforms";
 
 type OnionMode = "off" | "prev" | "next" | "both" | "difference";
 
@@ -38,9 +44,11 @@ export function initPhotosTab(): void {
   const input = $<HTMLInputElement>("photos-input");
   const btnAdd = $<HTMLButtonElement>("btn-photos-add");
   const btnClear = $<HTMLButtonElement>("btn-photos-clear");
+  const btnForget = $<HTMLButtonElement>("btn-photos-forget");
   const reverseToggle = $<HTMLInputElement>("photos-reverse");
   const countLabel = $<HTMLSpanElement>("photos-count");
   const strip = $<HTMLDivElement>("photos-strip");
+  const status = $<HTMLSpanElement>("photos-status");
 
   const btnAdvanced = $<HTMLButtonElement>("btn-photos-advanced-toggle");
   const advancedPanel = $<HTMLDivElement>("photos-advanced-panel");
@@ -93,6 +101,118 @@ export function initPhotosTab(): void {
 
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
+  /** Namespaces saved transforms, so two sets can share a filename safely. */
+  let setPrefix = "";
+  /** Transform a "Forget saved" reset returns to (a manifest may rotate). */
+  let baseline: FrameTransform = { ...IDENTITY_TRANSFORM };
+
+  // ── Transform persistence ────────────────────────────────────────────────
+  // Keyed by filename rather than index, so reordering or reloading a subset
+  // still restores the right transform to the right photo.
+
+  function loadSavedTransforms(): Record<string, FrameTransform> {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function saveTransforms(): void {
+    try {
+      const saved = loadSavedTransforms();
+      for (const f of frames) saved[setPrefix + f.name] = f.transform;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      setStatus(`Alignment saved — ${frames.length} frames`);
+    } catch {
+      setStatus("Could not save alignment (storage unavailable)");
+    }
+  }
+
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  function scheduleSave(): void {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveTransforms, 500);
+  }
+
+  function setStatus(text: string): void {
+    status.textContent = text;
+  }
+
+  /** Restore any transform previously saved for these filenames. */
+  function applySavedTransforms(list: PhotoFrame[]): number {
+    const saved = loadSavedTransforms();
+    let restored = 0;
+    for (const f of list) {
+      const t = saved[setPrefix + f.name];
+      if (t) {
+        f.transform = { ...IDENTITY_TRANSFORM, ...t };
+        restored++;
+      }
+    }
+    return restored;
+  }
+
+  // ── Preload sets ─────────────────────────────────────────────────────────
+
+  interface PreloadManifest {
+    name?: string;
+    /** Degrees clockwise applied to every frame as a starting point. */
+    rotate?: number;
+    frames: string[];
+  }
+
+  /**
+   * Load `public/preload/<set>/manifest.json` and its images. Lets a working
+   * session resume from a URL instead of re-picking files every reload.
+   */
+  async function preload(set: string): Promise<void> {
+    const base = `preload/${encodeURIComponent(set)}/`;
+    setStatus(`Loading “${set}”…`);
+    progress.hidden = false;
+    progress.value = 0;
+
+    try {
+      const res = await fetch(base + "manifest.json");
+      if (!res.ok) throw new Error(`manifest.json → HTTP ${res.status}`);
+      const manifest: PreloadManifest = await res.json();
+      if (!Array.isArray(manifest.frames) || manifest.frames.length === 0) {
+        throw new Error("manifest lists no frames");
+      }
+
+      const rotation = ((manifest.rotate ?? 0) * Math.PI) / 180;
+      setPrefix = `${set}/`;
+      baseline = { ...IDENTITY_TRANSFORM, rotation };
+      const loaded: PhotoFrame[] = [];
+      for (const file of manifest.frames) {
+        const imgRes = await fetch(base + encodeURIComponent(file));
+        if (!imgRes.ok) throw new Error(`${file} → HTTP ${imgRes.status}`);
+        loaded.push({
+          name: file,
+          bitmap: await createImageBitmap(await imgRes.blob()),
+          transform: { ...baseline },
+        });
+        progress.value = Math.round((loaded.length / manifest.frames.length) * 100);
+      }
+
+      // A saved alignment always wins over the manifest's starting rotation.
+      const restored = applySavedTransforms(loaded);
+      frames = loaded;
+      selected = 0;
+      playIndex = 0;
+      onFramesChanged();
+      setStatus(
+        restored > 0
+          ? `Loaded “${manifest.name ?? set}” — restored ${restored} saved alignment${restored === 1 ? "" : "s"}`
+          : `Loaded “${manifest.name ?? set}” — ${loaded.length} frames`,
+      );
+    } catch (err) {
+      setStatus(`Preload failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      progress.hidden = true;
+    }
+  }
+
   // ── Loading ──────────────────────────────────────────────────────────────
 
   btnAdd.addEventListener("click", () => input.click());
@@ -117,6 +237,7 @@ export function initPhotosTab(): void {
     // A batch is reversed within itself, then always appended — adding more
     // photos should never reorder the ones already placed.
     if (reverseToggle.checked) added.reverse();
+    applySavedTransforms(added);
     frames = frames.concat(added);
 
     progress.hidden = true;
@@ -133,6 +254,19 @@ export function initPhotosTab(): void {
     selected = frames.length ? frames.length - 1 - selected : 0;
     playIndex = 0;
     onFramesChanged();
+  });
+
+  btnForget.addEventListener("click", () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* storage unavailable; nothing was saved anyway */
+    }
+    for (const f of frames) f.transform = { ...baseline };
+    rebuildStrip();
+    refreshSelection();
+    renderPlayback();
+    setStatus("Saved alignment cleared — all frames back to their starting position");
   });
 
   btnClear.addEventListener("click", () => {
@@ -303,6 +437,7 @@ export function initPhotosTab(): void {
     syncTransformInputs();
     renderEditor();
     refreshSelectedThumb();
+    scheduleSave();
     if (!playing) renderPlayback();
   }
 
@@ -405,6 +540,7 @@ export function initPhotosTab(): void {
     if (!frame || !frames[selected + 1]) return;
     frames[selected + 1].transform = { ...frame.transform };
     select(selected + 1);
+    scheduleSave();
   });
 
   btnAlignApplyAll.addEventListener("click", () => {
@@ -414,6 +550,7 @@ export function initPhotosTab(): void {
     rebuildStrip();
     renderEditor();
     renderPlayback();
+    scheduleSave();
   });
 
   function select(index: number): void {
@@ -626,4 +763,7 @@ export function initPhotosTab(): void {
   }
 
   onFramesChanged();
+
+  const preloadSet = new URLSearchParams(location.search).get("preload");
+  if (preloadSet) void preload(preloadSet);
 }

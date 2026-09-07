@@ -526,6 +526,12 @@
         overflow: hidden;
       }
 
+      #photos-status {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        font-style: italic;
+      }
+
       #photos-bar {
         border-bottom: 1px solid var(--border);
         padding: 0.75rem 1.5rem;
@@ -935,7 +941,9 @@
             <input type="checkbox" id="photos-reverse" /> Reverse order
           </label>
           <button type="button" id="btn-photos-clear" class="action-btn" disabled>Clear</button>
+          <button type="button" id="btn-photos-forget" class="action-btn">Forget saved</button>
           <button type="button" id="btn-photos-advanced-toggle" class="action-btn">Advanced ▾</button>
+          <span id="photos-status"></span>
           <div style="margin-left:auto;display:flex;gap:0.5rem;align-items:center;">
             <progress id="photos-progress" value="0" max="100" hidden style="width:120px;height:6px;"></progress>
             <button type="button" id="btn-photos-build" class="action-btn primary" disabled>Build sheets</button>

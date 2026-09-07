@@ -167,6 +167,28 @@ of place stays coloured. That is usually the fastest way to line two frames up.
 to it — the quickest way to walk a sequence. `Apply to all` pushes it to every
 frame.
 
+**Preloading a set.** Re-picking files on every reload gets old during a long
+alignment session. Drop your frames in `web/public/preload/<set>/` alongside a
+`manifest.json`, then open `?preload=<set>`:
+
+```json
+{
+  "name": "Phoenix watercolour",
+  "rotate": 90,
+  "frames": ["frame_01.jpeg", "frame_02.jpeg", "frame_03.jpeg"]
+}
+```
+
+`frames` is the animation order (so bake any reversal into the list), and the
+optional `rotate` is degrees clockwise applied to every frame as a starting
+point. `web/public/preload/` is gitignored — these are your own images, not
+repo content.
+
+**Your alignment is saved automatically.** Transforms are written to
+localStorage, namespaced per preload set and keyed by filename, so a reload or
+an accidental refresh restores where you were. `Forget saved` discards them and
+returns every frame to its starting position.
+
 **Play.** The viewer flips the aligned squares at 1–60 fps, looping,
 ping-ponging, or once through. Scrubbing selects that frame in the aligner, so
 when a frame stutters you can drop straight into fixing it.

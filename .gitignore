@@ -16,3 +16,6 @@ __pycache__/
 .coverage
 htmlcov/
 uv.lock
+
+# Local preload sets — personal artwork, not part of the repo
+web/public/preload/
