@@ -184,6 +184,13 @@ optional `rotate` is degrees clockwise applied to every frame as a starting
 point. `web/public/preload/` is gitignored — these are your own images, not
 repo content.
 
+**Export alignment** writes a `manifest.json` sidecar holding the ordering and
+every frame's transform, plus the print settings and a description of the
+coordinate convention. It is deliberately a superset of the preload manifest:
+store it alongside the images, and pointing `?preload=<set>` at that folder
+restores the whole session — so the work is not trapped in one browser's
+storage. A transform carried in the manifest beats the blanket `rotate`.
+
 **Your alignment is saved automatically.** Transforms are written to
 localStorage, namespaced per preload set and keyed by filename, so a reload or
 an accidental refresh restores where you were. `Forget saved` discards them and

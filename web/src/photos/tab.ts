@@ -46,6 +46,7 @@ export function initPhotosTab(): void {
   const btnAdd = $<HTMLButtonElement>("btn-photos-add");
   const btnClear = $<HTMLButtonElement>("btn-photos-clear");
   const btnForget = $<HTMLButtonElement>("btn-photos-forget");
+  const btnExport = $<HTMLButtonElement>("btn-photos-export");
   const reverseToggle = $<HTMLInputElement>("photos-reverse");
   const countLabel = $<HTMLSpanElement>("photos-count");
   const strip = $<HTMLDivElement>("photos-strip");
@@ -165,11 +166,23 @@ export function initPhotosTab(): void {
 
   // ── Preload sets ─────────────────────────────────────────────────────────
 
+  /** A manifest frame is either a bare filename or a filename plus its transform. */
+  type ManifestFrame = string | ({ file: string } & Partial<FrameTransform>);
+
   interface PreloadManifest {
     name?: string;
     /** Degrees clockwise applied to every frame as a starting point. */
     rotate?: number;
-    frames: string[];
+    frames: ManifestFrame[];
+  }
+
+  function manifestFile(f: ManifestFrame): string {
+    return typeof f === "string" ? f : f.file;
+  }
+
+  function stripFile(f: { file: string } & Partial<FrameTransform>): Partial<FrameTransform> {
+    const { file: _file, ...transform } = f;
+    return transform;
   }
 
   /**
@@ -194,13 +207,16 @@ export function initPhotosTab(): void {
       setPrefix = `${set}/`;
       baseline = { ...IDENTITY_TRANSFORM, rotation };
       const loaded: PhotoFrame[] = [];
-      for (const file of manifest.frames) {
+      for (const entry of manifest.frames) {
+        const file = manifestFile(entry);
         const imgRes = await fetch(base + encodeURIComponent(file));
         if (!imgRes.ok) throw new Error(`${file} → HTTP ${imgRes.status}`);
+        // A transform carried by the manifest beats the blanket rotation.
+        const carried = typeof entry === "string" ? null : entry;
         loaded.push({
           name: file,
           bitmap: await createImageBitmap(await imgRes.blob()),
-          transform: { ...baseline },
+          transform: carried ? { ...baseline, ...stripFile(carried) } : { ...baseline },
         });
         progress.value = Math.round((loaded.length / manifest.frames.length) * 100);
       }
@@ -675,6 +691,64 @@ export function initPhotosTab(): void {
     btnAdvanced.textContent = advancedPanel.hidden ? "Advanced ▾" : "Advanced ▴";
   });
 
+  // ── Export the alignment ─────────────────────────────────────────────────
+
+  /**
+   * Write the ordering and per-frame transforms to a JSON sidecar.
+   *
+   * Deliberately a superset of the preload manifest: drop this file next to the
+   * images as `manifest.json` and `?preload=<set>` restores the whole session,
+   * so the work does not live only in this browser's storage.
+   */
+  function exportAlignment(): void {
+    if (frames.length === 0) return;
+
+    const { config, copies, packing } = resolveBuild(readLayoutConfig(controlsForm));
+    const manifest = {
+      schema: "flipbook-maker/alignment@1",
+      name: "Flipbook alignment",
+      exported: new Date().toISOString(),
+      frameGeometry: {
+        shape: "square",
+        baseline: "contain — scale 1 fits the whole image inside the square",
+        tx: "pan, as a fraction of the square's side; positive is right",
+        ty: "pan, as a fraction of the square's side; positive is down",
+        scale: "multiplies the contain-fit baseline",
+        rotation: "clockwise radians (rotationDeg is the same value in degrees)",
+      },
+      print: {
+        paperMm: config.pageSizeMm,
+        dpi: config.dpi,
+        marginMm: config.marginMm,
+        grid: [config.cols, config.rows],
+        cellMm: packing ? packing.cellMm : null,
+        copies,
+        cutGuides: config.cellOutline,
+        frameNumbers: config.frameNumbers,
+      },
+      // `frames` is the animation order — index 0 is flipped first.
+      frames: frames.map((f) => ({
+        file: f.name,
+        tx: f.transform.tx,
+        ty: f.transform.ty,
+        scale: f.transform.scale,
+        rotation: f.transform.rotation,
+        rotationDeg: Number(((f.transform.rotation * 180) / Math.PI).toFixed(4)),
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "manifest.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus(`Exported alignment for ${frames.length} frames`);
+  }
+
+  btnExport.addEventListener("click", exportAlignment);
+
   // ── Rolling-paper strips ─────────────────────────────────────────────────
 
   /**
@@ -866,6 +940,7 @@ export function initPhotosTab(): void {
     btnPlay.disabled = frames.length < 2;
     btnBuild.disabled = frames.length === 0;
     btnClear.disabled = frames.length === 0;
+    btnExport.disabled = frames.length === 0;
     btnAlignReset.disabled = frames.length === 0;
     btnAlignApplyAll.disabled = frames.length === 0;
     rebuildStrip();
