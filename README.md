@@ -207,6 +207,11 @@ strip to the left of each 16mm square image. That strip is the roll/bind edge
 the layout is already built around, so `Length runs: Across` is the useful
 default; `Down the sheet` puts the long axis vertical instead.
 
+**Cell outlines** are on by default in the Photos tab — with 85 cells to a
+sheet you need a line to cut along. Cut guides (both outlines and cut marks)
+are stroked at a constant 0.2mm rather than a fixed pixel width, so raising DPI
+sharpens them instead of thinning them away.
+
 **Duplicate to fill sheet** repeats the whole sequence for as many complete
 copies as the grid holds — in strip mode or on a plain grid. Untick it to set
 **Copies** by hand. Printed frame numbers restart at 1 for every copy, so each

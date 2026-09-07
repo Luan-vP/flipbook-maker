@@ -155,6 +155,14 @@ export async function renderCell(
   return canvas;
 }
 
+/**
+ * Cut guides are drawn at a constant physical width. A fixed pixel width would
+ * get thinner the higher the DPI — backwards for a line you have to cut along.
+ */
+function guideStrokePx(dpi: number): number {
+  return Math.max(1, mmToPx(0.2, dpi));
+}
+
 export function drawCutMarks(
   ctx: CanvasRenderingContext2D,
   config: LayoutConfig,
@@ -162,7 +170,7 @@ export function drawCutMarks(
 ): void {
   const tickPx = mmToPx(3, config.dpi);
   ctx.strokeStyle = "black";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = guideStrokePx(config.dpi);
 
   for (let row = 0; row <= config.rows; row++) {
     for (let col = 0; col <= config.cols; col++) {
@@ -188,7 +196,7 @@ export function drawCellOutlines(
   dims: LayoutDimensions,
 ): void {
   ctx.strokeStyle = "black";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = guideStrokePx(config.dpi);
   for (let row = 0; row < config.rows; row++) {
     for (let col = 0; col < config.cols; col++) {
       const x = dims.marginPx + col * dims.cellPx[0];
