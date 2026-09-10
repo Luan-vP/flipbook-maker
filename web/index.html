@@ -7,6 +7,10 @@
     <style>
       *, *::before, *::after { box-sizing: border-box; }
 
+      /* Author `display` rules outrank the UA's [hidden] rule, so elements
+         toggled via `el.hidden` stay laid out unless this wins outright. */
+      [hidden] { display: none !important; }
+
       :root {
         --bg: #1a1a1a;
         --surface: #252525;
@@ -513,6 +517,271 @@
         border-bottom: 1px solid var(--border);
         background: var(--surface);
       }
+
+      /* ── Photos tab ── */
+      #tab-photos {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 52px);
+        overflow: hidden;
+      }
+
+      #photos-strip-readout {
+        margin: 0.5rem 0 0;
+        font-size: 0.76rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+        max-width: 210px;
+      }
+      #photos-strip-readout.active { color: var(--accent); }
+
+      #photos-status {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        font-style: italic;
+      }
+
+      #photos-bar {
+        border-bottom: 1px solid var(--border);
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        background: var(--surface);
+      }
+
+      #photos-advanced-panel {
+        border-bottom: 1px solid var(--border);
+        padding: 0.9rem 1.5rem;
+        background: var(--surface2);
+      }
+      #photos-advanced-panel form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+      #photos-advanced-panel fieldset {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin: 0;
+        padding: 0.6rem 0.8rem 0.75rem;
+        min-width: 180px;
+      }
+      #photos-advanced-panel legend {
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding: 0 0.3rem;
+      }
+
+      #photos-workspace {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+
+      /* filmstrip */
+      #photos-strip {
+        width: 108px;
+        flex-shrink: 0;
+        overflow-y: auto;
+        border-right: 1px solid var(--border);
+        background: var(--surface);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .strip-item {
+        position: relative;
+        border: 2px solid transparent;
+        border-radius: var(--radius);
+        cursor: grab;
+        line-height: 0;
+        background: #000;
+        flex-shrink: 0;
+      }
+      .strip-item.selected { border-color: var(--accent); }
+      .strip-item.dragging { opacity: 0.4; }
+      .strip-item.drop-target { border-color: var(--accent-hover); border-style: dashed; }
+      .strip-item canvas { display: block; width: 84px; height: 84px; border-radius: 3px; }
+
+      .strip-index {
+        position: absolute;
+        left: 3px;
+        bottom: 3px;
+        font-size: 0.7rem;
+        line-height: 1;
+        padding: 2px 4px;
+        border-radius: 3px;
+        background: rgba(0, 0, 0, 0.7);
+        color: var(--text);
+      }
+
+      .strip-remove {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        border: none;
+        background: rgba(0, 0, 0, 0.65);
+        color: var(--text-muted);
+        border-radius: 3px;
+        font-size: 0.65rem;
+        line-height: 1;
+        padding: 3px 4px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+      .strip-item:hover .strip-remove { opacity: 1; }
+      .strip-remove:hover { color: var(--text); background: rgba(0, 0, 0, 0.9); }
+
+      /* stage: aligner + player */
+      #photos-stage {
+        flex: 1;
+        display: flex;
+        gap: 1.25rem;
+        padding: 1.25rem;
+        overflow: auto;
+        align-items: flex-start;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .stage-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+
+      .stage-title {
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      #align-wrap { position: relative; }
+
+      #align-canvas {
+        display: block;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: #101010;
+        cursor: grab;
+        touch-action: none;
+        outline: none;
+      }
+      #align-canvas:focus { border-color: var(--accent); }
+      #align-canvas.panning { cursor: grabbing; }
+
+      #align-empty {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        pointer-events: none;
+      }
+
+      #align-label { font-size: 0.82rem; color: var(--text-muted); }
+
+      #align-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        width: 460px;
+        max-width: 100%;
+      }
+
+      .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      .slider-row label { min-width: 52px; }
+      .slider-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+      .slider-row .slider-value {
+        min-width: 48px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+      }
+
+      .btn-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+      #play-canvas {
+        display: block;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: #000;
+      }
+
+      #play-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        width: 260px;
+      }
+      #play-scrub { width: 100%; accent-color: var(--accent); }
+
+      .hint {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+        margin: 0;
+        max-width: 260px;
+      }
+      .hint kbd {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 0 3px;
+        font-size: 0.72rem;
+      }
+
+      /* sheet preview */
+      #photos-sheet-area {
+        border-top: 1px solid var(--border);
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        max-height: 42vh;
+      }
+      #photos-sheet-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      #photos-sheet-scroll {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 1rem;
+      }
+      #photos-sheet-canvas {
+        max-width: 100%;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+        border-radius: 2px;
+      }
     </style>
   </head>
   <body>
@@ -520,6 +789,7 @@
       <h1>flipbook-maker</h1>
       <nav>
         <button class="tab-btn active" data-tab="flipbook">Flipbook</button>
+        <button class="tab-btn" data-tab="photos">Photos</button>
         <button class="tab-btn" data-tab="multi">Multi-Chapter</button>
         <button class="tab-btn" data-tab="tarot">Tarot</button>
         <button class="tab-btn" data-tab="cootie">Cootie Catcher</button>
@@ -664,6 +934,266 @@
           </div>
           <div id="preview-scroll">
             <canvas id="preview-canvas"></canvas>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ══ PHOTOS TAB ═══════════════════════════════════════════════════ -->
+      <section id="tab-photos" class="tab-section" hidden>
+
+        <div id="photos-bar">
+          <input id="photos-input" type="file" accept="image/*,.zip" multiple hidden />
+          <button type="button" id="btn-photos-add" class="action-btn primary">+ Photos</button>
+          <span id="photos-count">No photos loaded</span>
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.85rem;color:var(--text-muted);">
+            <input type="checkbox" id="photos-reverse" /> Reverse order
+          </label>
+          <button type="button" id="btn-photos-clear" class="action-btn" disabled>Clear</button>
+          <button type="button" id="btn-photos-forget" class="action-btn">Forget saved</button>
+          <button type="button" id="btn-photos-export" class="action-btn" disabled>Export alignment</button>
+          <button type="button" id="btn-photos-advanced-toggle" class="action-btn">Advanced ▾</button>
+          <span id="photos-status"></span>
+          <div style="margin-left:auto;display:flex;gap:0.5rem;align-items:center;">
+            <progress id="photos-progress" value="0" max="100" hidden style="width:120px;height:6px;"></progress>
+            <button type="button" id="btn-photos-build" class="action-btn primary" disabled>Build sheets</button>
+            <button type="button" id="btn-photos-pdf" class="action-btn" disabled>PDF</button>
+            <button type="button" id="btn-photos-png" class="action-btn" disabled>PNGs (ZIP)</button>
+          </div>
+        </div>
+
+        <div id="photos-advanced-panel" hidden>
+          <form id="photos-controls" autocomplete="off">
+            <fieldset>
+              <legend>Page</legend>
+              <div class="field-row">
+                <label for="photos-paper">Paper</label>
+                <select id="photos-paper" name="paper">
+                  <option value="a4" selected>A4</option>
+                  <option value="a3">A3</option>
+                  <option value="letter">Letter</option>
+                  <option value="legal">Legal</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <label>Orientation</label>
+                <div class="radio-group">
+                  <label><input type="radio" name="orientation" value="portrait" checked /> Portrait</label>
+                  <label><input type="radio" name="orientation" value="landscape" /> Landscape</label>
+                </div>
+              </div>
+              <div class="field-row">
+                <label for="photos-dpi">DPI</label>
+                <input id="photos-dpi" type="number" name="dpi" value="150" min="72" max="600" />
+              </div>
+              <div class="field-row">
+                <label for="photos-marginMm">Margin (mm)</label>
+                <input id="photos-marginMm" type="number" name="marginMm" value="5" min="0" max="50" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="photos-background">Background</label>
+                <input id="photos-background" type="text" name="background" value="white" />
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Grid</legend>
+              <div class="field-row">
+                <label for="photos-cols">Columns</label>
+                <input id="photos-cols" type="number" name="cols" value="2" min="1" max="10" />
+              </div>
+              <div class="field-row">
+                <label for="photos-rows">Rows</label>
+                <input id="photos-rows" type="number" name="rows" value="8" min="1" max="20" />
+              </div>
+              <p style="margin:0.4rem 0 0;font-size:0.78rem;color:var(--text-muted);max-width:200px;">
+                Sheet count follows from how many photos you load — 2 × 8 fits 16 per A4 sheet.
+              </p>
+            </fieldset>
+
+            <fieldset id="photos-strip-fieldset">
+              <legend>Rolling paper</legend>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="photos-strip-mode" name="stripMode" />
+                <label for="photos-strip-mode">Size cells to paper strips</label>
+              </div>
+              <div class="field-row">
+                <label for="photos-strip-width">Strip width (mm)</label>
+                <input id="photos-strip-width" type="number" name="stripWidthMm" value="16" min="4" max="100" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="photos-strip-length">Length (mm)</label>
+                <input id="photos-strip-length" type="number" name="stripLengthMm" value="42" min="10" max="200" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="photos-strip-tolerance">Flex ± (mm)</label>
+                <input id="photos-strip-tolerance" type="number" name="stripToleranceMm" value="6" min="0" max="40" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="photos-strip-orientation">Length runs</label>
+                <select id="photos-strip-orientation" name="stripOrientation">
+                  <option value="horizontal" selected>Across (roll strip left)</option>
+                  <option value="vertical">Down the sheet</option>
+                </select>
+              </div>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="photos-fill-sheet" name="fillSheet" checked />
+                <label for="photos-fill-sheet">Duplicate to fill sheet</label>
+              </div>
+              <div class="field-row">
+                <label for="photos-copies">Copies</label>
+                <input id="photos-copies" type="number" name="copies" value="1" min="1" max="99" disabled />
+              </div>
+              <p id="photos-strip-readout">Off — using the Grid settings.</p>
+            </fieldset>
+
+            <fieldset>
+              <legend>Frame scaling</legend>
+              <div class="field-row">
+                <label for="photos-fit">Fit mode</label>
+                <select id="photos-fit" name="fit">
+                  <option value="contain" selected>Contain</option>
+                  <option value="cover">Cover</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Decoration</legend>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="photos-cutMarks" name="cutMarks" />
+                <label for="photos-cutMarks">Cut marks</label>
+              </div>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="photos-cellOutline" name="cellOutline" checked />
+                <label for="photos-cellOutline">Cell outlines</label>
+              </div>
+              <div class="field-row checkbox-row">
+                <input type="checkbox" id="photos-frameNumbers" name="frameNumbers" checked />
+                <label for="photos-frameNumbers">Frame numbers</label>
+              </div>
+              <div class="field-row">
+                <label for="photos-frameNumberColor">Number colour</label>
+                <input id="photos-frameNumberColor" type="text" name="frameNumberColor" value="black" />
+              </div>
+              <div class="field-row">
+                <label for="photos-frameNumberOffsetMm">Number offset (mm)</label>
+                <input id="photos-frameNumberOffsetMm" type="number" name="frameNumberOffsetMm" value="2" min="0" step="0.5" />
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Bind strip</legend>
+              <div class="field-row">
+                <label for="photos-bindStripMm">Width (mm)</label>
+                <input id="photos-bindStripMm" type="number" name="bindStripMm" value="0" min="0" max="30" step="0.5" />
+              </div>
+              <div class="field-row">
+                <label for="photos-bindStripColor">Colour</label>
+                <input id="photos-bindStripColor" type="text" name="bindStripColor" placeholder="none" />
+              </div>
+            </fieldset>
+          </form>
+        </div>
+
+        <div id="photos-workspace">
+
+          <div id="photos-strip"></div>
+
+          <div id="photos-stage">
+
+            <!-- aligner -->
+            <div class="stage-panel">
+              <span class="stage-title">Align — square frame</span>
+              <div id="align-wrap">
+                <canvas id="align-canvas" tabindex="0"></canvas>
+                <div id="align-empty">Load photos to start aligning.</div>
+              </div>
+              <span id="align-label">No photo selected</span>
+
+              <div id="align-controls">
+                <div class="slider-row">
+                  <label for="align-zoom">Zoom</label>
+                  <input id="align-zoom" type="range" min="15" max="800" value="100" step="1" />
+                  <span class="slider-value" id="align-zoom-value">100%</span>
+                </div>
+                <div class="slider-row">
+                  <label for="align-rotate">Rotate</label>
+                  <input id="align-rotate" type="range" min="-180" max="180" value="0" step="0.1" />
+                  <span class="slider-value" id="align-rotate-value">0.0°</span>
+                </div>
+                <div class="slider-row">
+                  <label for="align-onion">Onion</label>
+                  <select id="align-onion" style="flex:1;">
+                    <option value="off">Off</option>
+                    <option value="prev" selected>Previous frame</option>
+                    <option value="next">Next frame</option>
+                    <option value="both">Both neighbours</option>
+                    <option value="difference">Difference vs previous</option>
+                  </select>
+                </div>
+                <div class="slider-row">
+                  <label for="align-onion-opacity">Opacity</label>
+                  <input id="align-onion-opacity" type="range" min="5" max="90" value="45" step="1" />
+                  <span class="slider-value"></span>
+                </div>
+                <div class="slider-row">
+                  <label style="min-width:auto;display:flex;align-items:center;gap:0.4rem;color:var(--text);">
+                    <input type="checkbox" id="align-guides" checked /> Guides
+                  </label>
+                </div>
+                <div class="btn-row">
+                  <button type="button" id="btn-align-prev" class="action-btn" disabled>‹ Prev</button>
+                  <button type="button" id="btn-align-next" class="action-btn" disabled>Next ›</button>
+                  <button type="button" id="btn-align-reset" class="action-btn" disabled>Reset</button>
+                  <button type="button" id="btn-align-copy-next" class="action-btn" disabled>Copy → next</button>
+                  <button type="button" id="btn-align-apply-all" class="action-btn" disabled>Apply to all</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- player -->
+            <div class="stage-panel">
+              <span class="stage-title">Play</span>
+              <canvas id="play-canvas"></canvas>
+              <div id="play-controls">
+                <div class="slider-row">
+                  <button type="button" id="btn-play" class="action-btn primary" disabled>▶ Play</button>
+                  <span class="slider-value" id="play-counter">— / —</span>
+                </div>
+                <input id="play-scrub" type="range" min="0" max="0" value="0" step="1" disabled />
+                <div class="slider-row">
+                  <label for="play-fps">FPS</label>
+                  <input id="play-fps" type="number" value="12" min="1" max="60" step="1" style="width:64px;" />
+                  <select id="play-mode" style="flex:1;">
+                    <option value="loop" selected>Loop</option>
+                    <option value="pingpong">Ping-pong</option>
+                    <option value="once">Once</option>
+                  </select>
+                </div>
+                <p class="hint">
+                  Drag in the square to pan, scroll to zoom.
+                  <kbd>←↑↓→</kbd> nudge (<kbd>Shift</kbd> = coarse),
+                  <kbd>[</kbd> <kbd>]</kbd> rotate,
+                  <kbd>n</kbd> / <kbd>p</kbd> step frames.
+                  Scrubbing selects that frame for alignment.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="photos-sheet-area">
+          <div id="photos-sheet-toolbar">
+            <button type="button" id="btn-photos-prev-sheet" class="action-btn" disabled>‹</button>
+            <span id="photos-sheet-counter">Sheet — / —</span>
+            <button type="button" id="btn-photos-next-sheet" class="action-btn" disabled>›</button>
+            <span style="margin-left:auto;">Print layout preview — press Build sheets after aligning.</span>
+          </div>
+          <div id="photos-sheet-scroll">
+            <canvas id="photos-sheet-canvas"></canvas>
           </div>
         </div>
 

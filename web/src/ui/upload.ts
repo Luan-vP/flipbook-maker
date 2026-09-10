@@ -52,35 +52,49 @@ export async function loadVideo(
   return frames;
 }
 
-export async function loadFiles(files: FileList | File[]): Promise<UploadedFrame[]> {
+/** Extensions `createImageBitmap` can decode across the browsers we target. */
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".avif"];
+
+function isImageName(name: string): boolean {
+  const lower = name.toLowerCase();
+  return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+export async function loadFiles(
+  files: FileList | File[],
+  onProgress?: (current: number, total: number) => void,
+): Promise<UploadedFrame[]> {
   const fileArray = Array.from(files);
 
   // If exactly one ZIP file, extract it
   if (fileArray.length === 1 && fileArray[0].name.toLowerCase().endsWith(".zip")) {
-    return loadZip(fileArray[0]);
+    return loadZip(fileArray[0], onProgress);
   }
 
-  const pngs = fileArray.filter((f) => f.type === "image/png" || f.name.toLowerCase().endsWith(".png"));
-  const sortedNames = naturalSort(pngs.map((f) => f.name));
-  const nameToFile = new Map(pngs.map((f) => [f.name, f]));
+  const images = fileArray.filter((f) => f.type.startsWith("image/") || isImageName(f.name));
+  const sortedNames = naturalSort(images.map((f) => f.name));
+  const nameToFile = new Map(images.map((f) => [f.name, f]));
 
   const frames: UploadedFrame[] = [];
   for (const name of sortedNames) {
     const file = nameToFile.get(name)!;
-    const bitmap = await loadImageBitmap(file);
-    frames.push({ name, bitmap });
+    frames.push({ name, bitmap: await loadImageBitmap(file) });
+    onProgress?.(frames.length, sortedNames.length);
   }
   return frames;
 }
 
-async function loadZip(file: File): Promise<UploadedFrame[]> {
+async function loadZip(
+  file: File,
+  onProgress?: (current: number, total: number) => void,
+): Promise<UploadedFrame[]> {
   const zip = await JSZip.loadAsync(file);
   const entries: { name: string; blob: Blob }[] = [];
 
   for (const [path, entry] of Object.entries(zip.files)) {
     if (entry.dir) continue;
     const filename = path.split("/").pop() ?? path;
-    if (!filename.toLowerCase().endsWith(".png")) continue;
+    if (filename.startsWith(".") || !isImageName(filename)) continue;
     const blob = await entry.async("blob");
     entries.push({ name: filename, blob });
   }
@@ -91,8 +105,8 @@ async function loadZip(file: File): Promise<UploadedFrame[]> {
   const frames: UploadedFrame[] = [];
   for (const name of sortedNames) {
     const entry = nameToEntry.get(name)!;
-    const bitmap = await loadImageBitmap(entry.blob);
-    frames.push({ name, bitmap });
+    frames.push({ name, bitmap: await loadImageBitmap(entry.blob) });
+    onProgress?.(frames.length, sortedNames.length);
   }
   return frames;
 }

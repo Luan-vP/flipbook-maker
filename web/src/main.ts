@@ -16,6 +16,7 @@ import {
   DEFAULT_COOTIE_CONFIG,
 } from "./cootie/template";
 import { PAPER_SIZES_MM, FRAME_SIZE_PRESETS_MM, gridForFrameSize } from "./core/paper";
+import { initPhotosTab } from "./photos/tab";
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -584,3 +585,7 @@ btnMultiPng.addEventListener("click", async () => {
   await savePages(multiRenderedPages, "multi-chapter-pages.zip");
   btnMultiPng.disabled = false;
 });
+
+// ── Photos tab ─────────────────────────────────────────────────────────────
+
+initPhotosTab();

@@ -17,6 +17,12 @@ export interface LayoutConfig {
   frameNumberOffsetMm: number;
   bindStripMm: number;
   bindStripColor: string | null;
+  /**
+   * Restart printed frame numbers every N frames. When a sheet carries several
+   * copies of the same sequence, each copy should number 1..N rather than
+   * running on. Null keeps a single run across the whole job.
+   */
+  frameNumberModulo: number | null;
 }
 
 export const DEFAULT_CONFIG: LayoutConfig = {
@@ -34,6 +40,7 @@ export const DEFAULT_CONFIG: LayoutConfig = {
   frameNumberOffsetMm: 2,
   bindStripMm: 0,
   bindStripColor: null,
+  frameNumberModulo: null,
 };
 
 export interface LayoutDimensions {
@@ -137,7 +144,8 @@ export async function renderCell(
     const fontSize = Math.max(8, Math.round(ch * 0.06));
     ctx.font = `${fontSize}px sans-serif`;
     ctx.fillStyle = config.frameNumberColor;
-    const text = String(frameIndex + 1);
+    const modulo = config.frameNumberModulo;
+    const text = String(modulo && modulo > 0 ? (frameIndex % modulo) + 1 : frameIndex + 1);
     const metrics = ctx.measureText(text);
     const textH =
       metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
@@ -147,6 +155,14 @@ export async function renderCell(
   return canvas;
 }
 
+/**
+ * Cut guides are drawn at a constant physical width. A fixed pixel width would
+ * get thinner the higher the DPI — backwards for a line you have to cut along.
+ */
+function guideStrokePx(dpi: number): number {
+  return Math.max(1, mmToPx(0.2, dpi));
+}
+
 export function drawCutMarks(
   ctx: CanvasRenderingContext2D,
   config: LayoutConfig,
@@ -154,7 +170,7 @@ export function drawCutMarks(
 ): void {
   const tickPx = mmToPx(3, config.dpi);
   ctx.strokeStyle = "black";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = guideStrokePx(config.dpi);
 
   for (let row = 0; row <= config.rows; row++) {
     for (let col = 0; col <= config.cols; col++) {
@@ -180,7 +196,7 @@ export function drawCellOutlines(
   dims: LayoutDimensions,
 ): void {
   ctx.strokeStyle = "black";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = guideStrokePx(config.dpi);
   for (let row = 0; row < config.rows; row++) {
     for (let col = 0; col < config.cols; col++) {
       const x = dims.marginPx + col * dims.cellPx[0];

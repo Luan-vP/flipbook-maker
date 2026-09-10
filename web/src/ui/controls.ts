@@ -49,5 +49,6 @@ export function readLayoutConfig(form: HTMLFormElement): LayoutConfig {
     frameNumberOffsetMm: Math.max(0, num("frameNumberOffsetMm", DEFAULT_CONFIG.frameNumberOffsetMm)),
     bindStripMm: Math.max(0, num("bindStripMm", DEFAULT_CONFIG.bindStripMm)),
     bindStripColor: bindColor || null,
+    frameNumberModulo: null,
   };
 }
