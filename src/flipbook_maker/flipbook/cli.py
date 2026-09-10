@@ -75,7 +75,8 @@ def _load_order_file(order_file: Path, frames_dir: Path) -> list[Path]:
 @click.option("--frame-w-mm", type=float, default=None,
               help="Custom fixed cell width in mm (use with --frame-h-mm instead of --frame-size).")
 @click.option("--frame-h-mm", type=float, default=None,
-              help="Custom fixed cell height in mm (use with --frame-w-mm instead of --frame-size).")
+              help="Custom fixed cell height in mm "
+                   "(use with --frame-w-mm instead of --frame-size).")
 @click.option("--dpi", type=int, default=300, show_default=True, help="Output DPI.")
 @click.option("--margin-mm", type=float, default=5.0, show_default=True, help="Sheet margin in mm.")
 @click.option("--background", type=str, default="white", show_default=True,
@@ -159,7 +160,9 @@ def main(ctx: click.Context, frames_dir: Path | None, video_path: Path | None, f
                 raise click.ClickException(f"no frames matched {glob_pattern!r} in {frames_dir}")
 
         if frame_size is not None and (frame_w_mm is not None or frame_h_mm is not None):
-            raise click.UsageError("--frame-size and --frame-w-mm/--frame-h-mm are mutually exclusive")
+            raise click.UsageError(
+                "--frame-size and --frame-w-mm/--frame-h-mm are mutually exclusive"
+            )
         if (frame_w_mm is None) != (frame_h_mm is None):
             raise click.UsageError("--frame-w-mm and --frame-h-mm must be given together")
 

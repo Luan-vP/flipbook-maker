@@ -4,9 +4,9 @@ from pathlib import Path
 
 import click
 
+from flipbook_maker.cootie.template import DEFAULT_COLORS, render_cootie_template
 from flipbook_maker.core.io import save_pages
 from flipbook_maker.core.paper import PAPER_SIZES_MM
-from flipbook_maker.cootie.template import DEFAULT_COLORS, DEFAULT_FORTUNES, render_cootie_template
 
 
 @click.command()

@@ -27,6 +27,12 @@ QA_PDF = QA_DIR / "flipbook.pdf"
 NUM_FRAMES = 16
 
 
+# py5 imports cleanly without a usable Java 17 runtime, so a broken or absent
+# JVM only surfaces when the sketch actually runs. Matched against stderr to
+# tell that environment gap apart from a genuine sketch regression.
+JVM_FAILURE_MARKER = "unable to start a Java"
+
+
 def _py5_available() -> bool:
     return importlib.util.find_spec("py5") is not None
 
@@ -45,6 +51,10 @@ def _run_sketch(out_dir: Path) -> None:
         cmd = [xvfb, "-a", *cmd]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if proc.returncode != 0:
+        # Skip only for a missing JVM, as this module already does for a
+        # missing Xvfb. Every other failure still fails the test.
+        if JVM_FAILURE_MARKER in proc.stderr:
+            pytest.skip("py5 needs a working Java 17 runtime to render the sketch")
         pytest.fail(
             f"py5 sketch failed (exit {proc.returncode}):\n"
             f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"

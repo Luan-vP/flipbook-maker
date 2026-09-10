@@ -311,15 +311,21 @@ def render_cootie_template(
     # Rotation angles to keep text readable relative to nearest edge
     fortune_rotations = [45, -45, -45, 45, 45, -45, -45, 45]
 
+    # All three are fixed at eight sections; strict catches any drift.
     for i, (poly, fortune, rot) in enumerate(
-        zip(fortune_sections, fortunes, fortune_rotations)
+        zip(fortune_sections, fortunes, fortune_rotations, strict=True)
     ):
         cx, cy = _centroid(poly)
         label = f"{i + 1}"
         nb = draw.textbbox((0, 0), label, font=num_font)
         nw, nh = nb[2] - nb[0], nb[3] - nb[1]
         # number near centroid, shifted slightly toward corner
-        draw.text((int(cx - nw // 2), int(cy - nh // 2) - num_font_px // 2), label, font=num_font, fill=fortune_text_color)
+        draw.text(
+            (int(cx - nw // 2), int(cy - nh // 2) - num_font_px // 2),
+            label,
+            font=num_font,
+            fill=fortune_text_color,
+        )
         # fortune text below the number
         _draw_text_in_triangle(
             draw, poly, fortune, fortune_font,
